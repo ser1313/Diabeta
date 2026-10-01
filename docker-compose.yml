@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: diabeta
+      POSTGRES_USER: diabeta
+      POSTGRES_PASSWORD: diabeta_dev_change_me
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data", "./apps/api/migrations:/docker-entrypoint-initdb.d:ro"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diabeta -d diabeta"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes: { postgres_data: {} }

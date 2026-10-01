@@ -1,0 +1,2 @@
+import 'dotenv/config'; import { buildApp } from './app.js'; import { MemoryRepository, PgRepository } from './repository.js';
+const url=process.env.DATABASE_URL; const repository=process.env.USE_MEMORY_STORE==='true'||!url?new MemoryRepository():new PgRepository(url); const app=buildApp(repository); const port=Number(process.env.PORT??3000); app.listen({port,host:'0.0.0.0'}).catch(err=>{app.log.error(err);process.exit(1)});
