@@ -1,0 +1,1 @@
+import { Stack } from 'expo-router'; export default function Layout(){return <Stack screenOptions={{headerStyle:{backgroundColor:'#0B2942'},headerTintColor:'#fff',contentStyle:{backgroundColor:'#F4F8FA'}}}><Stack.Screen name="index" options={{title:'DIABETA'}} /></Stack>}

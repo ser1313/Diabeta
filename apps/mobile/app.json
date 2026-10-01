@@ -1,0 +1,1 @@
+{"expo":{"name":"DIABETA","slug":"diabeta","version":"0.1.0","orientation":"portrait","scheme":"diabeta","userInterfaceStyle":"automatic","plugins":["expo-router","expo-secure-store"],"experiments":{"typedRoutes":true}}}
