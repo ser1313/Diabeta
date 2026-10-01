@@ -9,7 +9,7 @@ Aplicación móvil de seguimiento personal de la diabetes: registro de glucosa, 
 - PostgreSQL 16 mediante Docker y migración SQL inicial en `apps/api/migrations`.
 - CI GitHub Actions: lint, typecheck, tests y build.
 
-El API incluye endpoints de registro/inicio/recovery, perfil y consentimiento, dashboard, registros de glucosa/insulina/comidas/ejercicio, contactos de emergencia, calculadora matemática de apoyo, AI Guardian, adaptadores de sensores y QR de emergencia. Todas las rutas salvo autenticación y health check exigen Bearer JWT. La validación de DTOs limita tipos, tamaños y rangos básicos.
+El API incluye endpoints de registro/inicio/recovery, perfil y consentimiento, dashboard, registros de glucosa/insulina/comidas/ejercicio, alimentos personalizados, contactos de emergencia, estadísticas/TIR, calculadora matemática de apoyo, AI Guardian, adaptadores de sensores y QR de emergencia. Todas las rutas salvo autenticación y health check exigen Bearer JWT. La validación de DTOs limita tipos, tamaños y rangos básicos.
 
 ## Inicio local
 
@@ -47,4 +47,4 @@ El esquema contiene usuarios, perfiles/configuración, lecturas, insulina, comid
 
 ## Limitaciones y siguiente fase
 
-La API usa PostgreSQL automáticamente cuando `DATABASE_URL` está configurada; el repositorio en memoria solo se selecciona de forma explícita con `USE_MEMORY_STORE=true` (útil para tests y previews). Añadir pantallas móviles autenticadas, historial/gráficas, almacenamiento seguro de token (`expo-secure-store`), CRUD de alimentos/catálogo administrable, rate limiting, correo, pruebas E2E y las integraciones oficiales. Los cálculos solo separan aritmética configurable de una recomendación clínica y presentan advertencias explícitas.
+La API usa PostgreSQL automáticamente cuando `DATABASE_URL` está configurada; el repositorio en memoria solo se selecciona de forma explícita con `USE_MEMORY_STORE=true` (útil para tests y previews). Añadir pantallas móviles autenticadas, historial/gráficas, almacenamiento seguro de token (`expo-secure-store`), catálogo de insulinas administrable, rate limiting, correo, pruebas E2E y las integraciones oficiales. Los cálculos solo separan aritmética configurable de una recomendación clínica y presentan advertencias explícitas.
