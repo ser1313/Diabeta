@@ -1,0 +1,1 @@
+import{IsBoolean,IsNumber,IsOptional,Max,Min}from'class-validator';export class UpdateSettingsDto{@IsOptional()@IsNumber()@Min(40)@Max(100)lowThreshold?:number;@IsOptional()@IsNumber()@Min(100)@Max(400)highThreshold?:number;@IsOptional()@IsBoolean()alertsEnabled?:boolean}
