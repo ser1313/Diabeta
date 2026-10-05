@@ -137,3 +137,109 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
     ),
   );
 }
+
+
+class LifestylePage extends StatefulWidget {
+  const LifestylePage({super.key});
+  @override State<LifestylePage> createState() => _LifestylePageState();
+}
+
+class _LifestylePageState extends State<LifestylePage> {
+  final api = ApiClient();
+  List<dynamic> meals = [];
+  List<dynamic> activities = [];
+  String status = 'Cargando...';
+
+  @override
+  void initState() { super.initState(); load(); }
+
+  Future<void> load() async {
+    try {
+      final results = await Future.wait([api.getList('/nutrition'), api.getList('/activity')]);
+      if (mounted) setState(() {
+        meals = results[0];
+        activities = results[1];
+        status = 'Datos sincronizados';
+      });
+    } catch (_) {
+      if (mounted) setState(() => status = 'No se pudieron cargar los datos.');
+    }
+  }
+
+  Future<void> addMeal() async {
+    final name = TextEditingController();
+    final carbs = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Añadir comida'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'Comida')),
+          TextField(controller: carbs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Carbohidratos (g)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(onPressed: () async {
+            await api.post('/nutrition', {'name': name.text.trim(), 'carbs': double.tryParse(carbs.text)});
+            if (ctx.mounted) Navigator.pop(ctx);
+          }, child: const Text('Guardar')),
+        ],
+      ),
+    );
+    name.dispose(); carbs.dispose(); await load();
+  }
+
+  Future<void> addActivity() async {
+    final type = TextEditingController();
+    final minutes = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Añadir actividad'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: type, decoration: const InputDecoration(labelText: 'Tipo de actividad')),
+          TextField(controller: minutes, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Minutos')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(onPressed: () async {
+            final min = int.tryParse(minutes.text);
+            if (min != null && min > 0) {
+              await api.post('/activity', {'type': type.text.trim(), 'minutes': min});
+            }
+            if (ctx.mounted) Navigator.pop(ctx);
+          }, child: const Text('Guardar')),
+        ],
+      ),
+    );
+    type.dispose(); minutes.dispose(); await load();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Nutrición y actividad')),
+    body: RefreshIndicator(
+      onRefresh: load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(status),
+          Card(child: ListTile(leading: const Icon(Icons.restaurant), title: const Text('Registrar comida'), onTap: addMeal)),
+          Card(child: ListTile(leading: const Icon(Icons.fitness_center), title: const Text('Registrar actividad'), onTap: addActivity)),
+          const SizedBox(height: 8),
+          Text('Últimas comidas', style: Theme.of(context).textTheme.titleMedium),
+          ...meals.take(10).map((m) => ListTile(
+            title: Text(m['name']?.toString() ?? 'Comida'),
+            subtitle: Text('Carbohidratos: ${m['carbs'] ?? '--'} g'),
+          )),
+          const SizedBox(height: 8),
+          Text('Últimas actividades', style: Theme.of(context).textTheme.titleMedium),
+          ...activities.take(10).map((a) => ListTile(
+            title: Text(a['type']?.toString() ?? 'Actividad'),
+            subtitle: Text('${a['minutes'] ?? '--'} minutos'),
+          )),
+        ],
+      ),
+    ),
+  );
+}
