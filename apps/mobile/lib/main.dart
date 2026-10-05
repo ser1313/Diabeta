@@ -53,6 +53,14 @@ class _LoginState extends State<Login> {
   String error = '';
   bool register = false;
 
+  @override
+  void dispose() {
+    email.dispose();
+    pass.dispose();
+    firstName.dispose();
+    super.dispose();
+  }
+
   Future<void> submit() async {
     try {
       final r = await api.post(
