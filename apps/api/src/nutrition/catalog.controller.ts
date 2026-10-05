@@ -1,0 +1,1 @@
+import{Controller,Get}from'@nestjs/common';import{rapidInsulinSpain,nutritionGuidance}from'./catalog';@Controller('catalog')export class CatalogController{@Get('rapid-insulin-spain')insulin(){return rapidInsulinSpain}@Get('nutrition-guidance')guidance(){return nutritionGuidance}}
