@@ -7,3 +7,5 @@ model MedicalProfile { id String @id @default(cuid()) userId String @unique qrTo
 
 model Meal { id String @id @default(cuid()) userId String name String carbs Float? calories Float? protein Float? photoUrl String? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,createdAt]) }
 model Activity { id String @id @default(cuid()) userId String type String minutes Int calories Float? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,createdAt]) }
+
+model SensorConnection { id String @id @default(cuid()) userId String provider String externalId String? status String @default("pending") lastSyncAt DateTime? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@unique([userId,provider]) }
