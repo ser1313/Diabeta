@@ -1,0 +1,1 @@
+import{IsDateString,IsNumber,IsString,Max,Min}from'class-validator';export class CreateInsulinDto{@IsNumber()@Min(0)@Max(200)units!:number;@IsString()insulinType!:string;@IsDateString()recordedAt!:string}
