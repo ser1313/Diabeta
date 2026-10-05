@@ -24,7 +24,8 @@ class _SettingsPageState extends State<SettingsPage> {
       final results = await Future.wait([
         api.getMap('/profile'), api.getMap('/settings/alerts'), api.getList('/sensors'),
       ]);
-      final p = results[0], s = results[1];
+      final p = Map<String, dynamic>.from(results[0] as Map);
+      final s = Map<String, dynamic>.from(results[1] as Map);
       name.text = p['firstName']?.toString() ?? '';
       if (mounted) setState(() {
         language = p['language']?.toString() ?? 'es';
