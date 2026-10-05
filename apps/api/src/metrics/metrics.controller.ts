@@ -1,0 +1,1 @@
+import{Controller,Get,Req,UseGuards}from'@nestjs/common';import{JwtGuard}from'../auth/jwt.guard';import{MetricsService}from'./metrics.service';@Controller('metrics')@UseGuards(JwtGuard)export class MetricsController{constructor(private m:MetricsService){}@Get('summary')summary(@Req()r:any){return this.m.summary(r.user.sub)}}
