@@ -259,6 +259,7 @@ class _DashboardState extends State<Dashboard> {
             Card(child: ListTile(title: const Text('Tarjeta médica QR'), onTap: _medical)),
             Card(child: ListTile(title: const Text('Indicadores + AI Guardian'), leading: const Icon(Icons.insights), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsightsPage())))),
             Card(child: ListTile(title: const Text('Calculadora informativa'), leading: const Icon(Icons.calculate), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsulinCalculatorPage())))),
+            Card(child: ListTile(title: const Text('Nutrición y actividad'), leading: const Icon(Icons.restaurant_menu), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const LifestylePage())))),
             Card(child: ListTile(title: const Text('SOS'), onTap: _sos)),
             Text('${glucose.length} glucosa · ${insulin.length} insulina'),
           ],
