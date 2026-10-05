@@ -1,5 +1,1 @@
-import {Module} from '@nestjs/common';
-import {ConfigModule} from '@nestjs/config';
-import {HealthController} from './health.controller';
-@Module({imports:[ConfigModule.forRoot({isGlobal:true})],controllers:[HealthController]})
-export class AppModule{}
+import{Module}from'@nestjs/common';import{ConfigModule}from'@nestjs/config';import{HealthController}from'./health.controller';import{AuthModule}from'./auth/auth.module';import{GlucoseModule}from'./glucose/glucose.module';@Module({imports:[ConfigModule.forRoot({isGlobal:true}),AuthModule,GlucoseModule],controllers:[HealthController]})export class AppModule{}
