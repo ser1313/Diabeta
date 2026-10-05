@@ -41,7 +41,7 @@ class _InsightsPageState extends State<InsightsPage> {
               title: Text(g['alert'] == true ? 'Guardian: atención' : 'Guardian: sin alerta'),
               subtitle: Text(g['message']?.toString() ?? 'Sin información disponible.'),
             )),
-            Card(child: ListTile(title: const Text('Tiempo en rango (70–180 mg/dL)'), trailing: Text('${m['tirPercent'] ?? '--'} %'))),
+            Card(child: ListTile(title: const Text('Tiempo en rango (70–180 mg/dL)'), trailing: Text('${m['timeInRangePercent'] ?? '--'} %'))),
             Card(child: ListTile(title: const Text('Glucosa media'), trailing: Text('${m['averageGlucose'] ?? '--'} mg/dL'))),
             Card(child: ListTile(title: const Text('HbA1c estimada'), trailing: Text('${m['estimatedA1c'] ?? '--'} %'))),
             const SizedBox(height: 12),
