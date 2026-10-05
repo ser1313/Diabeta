@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, TooManyRequestsException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
@@ -13,7 +13,9 @@ export class AuthRateLimitGuard implements CanActivate {
       attempts.set(key, { count: 1, resetAt: now + 60_000 });
       return true;
     }
-    if (current.count >= 10) throw new TooManyRequestsException('Demasiados intentos. Espera un minuto.');
+    if (current.count >= 10) {
+      throw new HttpException('Demasiados intentos. Espera un minuto.', HttpStatus.TOO_MANY_REQUESTS);
+    }
     current.count += 1;
     return true;
   }
