@@ -1,0 +1,5 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+model User { id String @id @default(cuid()) email String @unique passwordHash String firstName String? language String @default("es") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt glucose GlucoseReading[] insulin InsulinEntry[] }
+model GlucoseReading { id String @id @default(cuid()) userId String value Float unit String @default("mg/dL") source String @default("manual") recordedAt DateTime createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,recordedAt]) }
+model InsulinEntry { id String @id @default(cuid()) userId String units Float insulinType String recordedAt DateTime createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,recordedAt]) }
