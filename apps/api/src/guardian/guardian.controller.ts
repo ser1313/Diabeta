@@ -1,0 +1,1 @@
+import{Controller,Get,Req,UseGuards}from'@nestjs/common';import{JwtGuard}from'../auth/jwt.guard';import{GuardianService}from'./guardian.service';@Controller('guardian')@UseGuards(JwtGuard)export class GuardianController{constructor(private g:GuardianService){}@Get('check')check(@Req()r:any){return this.g.check(r.user.sub)}}
