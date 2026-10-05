@@ -1,2 +1,2 @@
-import { Body, Controller, Post } from '@nestjs/common'; import { AuthService } from './auth.service'; import { LoginDto, RegisterDto } from './auth.dto';
-@Controller('auth') export class AuthController { constructor(private a:AuthService){} @Post('register') register(@Body()d:RegisterDto){return this.a.register(d)} @Post('login') login(@Body()d:LoginDto){return this.a.login(d)} }
+import { Body, Controller, Post } from '@nestjs/common'; import { AuthService } from './auth.service'; import { UseGuards } from '@nestjs/common'; import { AuthRateLimitGuard } from './auth-rate-limit.guard'; import { LoginDto, RegisterDto } from './auth.dto';
+@Controller('auth') @UseGuards(AuthRateLimitGuard) export class AuthController { constructor(private a:AuthService){} @Post('register') register(@Body()d:RegisterDto){return this.a.register(d)} @Post('login') login(@Body()d:LoginDto){return this.a.login(d)} }
