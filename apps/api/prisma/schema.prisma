@@ -1,13 +1,109 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
-model User { id String @id @default(cuid()) email String @unique passwordHash String firstName String? language String @default("es") createdAt DateTime @default(now()) updatedAt DateTime @updatedAt glucose GlucoseReading[] insulin InsulinEntry[] medicalProfile MedicalProfile? meals Meal[] activities Activity[] sensors SensorConnection[] alertSettings AlertSettings? }
-model GlucoseReading { id String @id @default(cuid()) userId String value Float unit String @default("mg/dL") source String @default("manual") recordedAt DateTime createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,recordedAt]) }
-model InsulinEntry { id String @id @default(cuid()) userId String units Float insulinType String recordedAt DateTime createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,recordedAt]) }
-model MedicalProfile { id String @id @default(cuid()) userId String @unique qrToken String @unique bloodType String? allergies String? medications String? emergencyContact String? notes String? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt user User @relation(fields:[userId],references:[id],onDelete:Cascade) }
+generator client {
+  provider = "prisma-client-js"
+}
 
-model Meal { id String @id @default(cuid()) userId String name String carbs Float? calories Float? protein Float? photoUrl String? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,createdAt]) }
-model Activity { id String @id @default(cuid()) userId String type String minutes Int calories Float? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@index([userId,createdAt]) }
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
 
-model SensorConnection { id String @id @default(cuid()) userId String provider String externalId String? status String @default("pending") lastSyncAt DateTime? createdAt DateTime @default(now()) user User @relation(fields:[userId],references:[id],onDelete:Cascade) @@unique([userId,provider]) }
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  firstName String?
+  language String @default("es")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  glucose GlucoseReading[]
+  insulin InsulinEntry[]
+  medicalProfile MedicalProfile?
+  meals Meal[]
+  activities Activity[]
+  sensors SensorConnection[]
+  alertSettings AlertSettings?
+}
 
-model AlertSettings { id String @id @default(cuid()) userId String @unique lowThreshold Float @default(70) highThreshold Float @default(180) alertsEnabled Boolean @default(true) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt user User @relation(fields:[userId],references:[id],onDelete:Cascade) }
+model GlucoseReading {
+  id String @id @default(cuid())
+  userId String
+  value Float
+  unit String @default("mg/dL")
+  source String @default("manual")
+  recordedAt DateTime
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, recordedAt])
+}
+
+model InsulinEntry {
+  id String @id @default(cuid())
+  userId String
+  units Float
+  insulinType String
+  recordedAt DateTime
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, recordedAt])
+}
+
+model MedicalProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  qrToken String @unique
+  bloodType String?
+  allergies String?
+  medications String?
+  emergencyContact String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Meal {
+  id String @id @default(cuid())
+  userId String
+  name String
+  carbs Float?
+  calories Float?
+  protein Float?
+  photoUrl String?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model Activity {
+  id String @id @default(cuid())
+  userId String
+  type String
+  minutes Int
+  calories Float?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model SensorConnection {
+  id String @id @default(cuid())
+  userId String
+  provider String
+  externalId String?
+  status String @default("pending")
+  lastSyncAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, provider])
+}
+
+model AlertSettings {
+  id String @id @default(cuid())
+  userId String @unique
+  lowThreshold Float @default(70)
+  highThreshold Float @default(180)
+  alertsEnabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
