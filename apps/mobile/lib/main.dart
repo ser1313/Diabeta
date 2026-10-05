@@ -4,6 +4,7 @@ import 'api_client.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
+import 'settings.dart';
 
 void main() => runApp(const DiabetaApp());
 
@@ -47,6 +48,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final email = TextEditingController();
   final pass = TextEditingController();
+  final firstName = TextEditingController();
   final api = ApiClient();
   String error = '';
   bool register = false;
@@ -55,7 +57,7 @@ class _LoginState extends State<Login> {
     try {
       final r = await api.post(
         register ? '/auth/register' : '/auth/login',
-        {'email': email.text.trim(), 'password': pass.text, 'firstName': 'Usuario'},
+        {'email': email.text.trim(), 'password': pass.text, 'firstName': firstName.text.trim().isEmpty ? 'Usuario' : firstName.text.trim()},
       );
       final p = await SharedPreferences.getInstance();
       await p.setString('token', r['accessToken'].toString());
@@ -74,6 +76,7 @@ class _LoginState extends State<Login> {
             const Icon(Icons.monitor_heart, size: 72),
             Text('Diabeta', style: Theme.of(c).textTheme.headlineMedium),
             Text(register ? 'Crear cuenta' : 'Iniciar sesión'),
+            if (register) TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Nombre')),
             TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
             TextField(controller: pass, obscureText: true, decoration: const InputDecoration(labelText: 'Contraseña')),
             if (error.isNotEmpty) Text(error),
@@ -260,6 +263,7 @@ class _DashboardState extends State<Dashboard> {
             Card(child: ListTile(title: const Text('Indicadores + AI Guardian'), leading: const Icon(Icons.insights), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsightsPage())))),
             Card(child: ListTile(title: const Text('Calculadora informativa'), leading: const Icon(Icons.calculate), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsulinCalculatorPage())))),
             Card(child: ListTile(title: const Text('Nutrición y actividad'), leading: const Icon(Icons.restaurant_menu), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const LifestylePage())))),
+            Card(child: ListTile(title: const Text('Ajustes, alertas y sensores'), leading: const Icon(Icons.settings), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const SettingsPage())))),
             Card(child: ListTile(title: const Text('SOS'), onTap: _sos)),
             Text('${glucose.length} glucosa · ${insulin.length} insulina'),
           ],
