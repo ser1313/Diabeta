@@ -193,8 +193,8 @@ class _DashboardState extends State<Dashboard> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                QrImageView(data: 'diabeta://medical/$token', size: 200),
-                const Text('Código QR privado para la tarjeta médica de emergencia.'),
+                QrImageView(data: '${api.baseUrl}/medical/card/$token', size: 200),
+                const Text('QR de acceso a la tarjeta médica pública. En producción debe utilizar HTTPS y una URL accesible.'),
               ],
             ),
           ),
