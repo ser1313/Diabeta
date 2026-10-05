@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_client.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'insights.dart';
 
 void main() => runApp(const DiabetaApp());
 
