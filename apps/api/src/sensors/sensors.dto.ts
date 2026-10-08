@@ -1,1 +1,1 @@
-import{IsIn,IsOptional,IsString}from'class-validator';export class ConnectSensorDto{@IsIn(['freestyle_libre','dexcom'])provider!:string;@IsOptional()@IsString()externalId?:string}
+import{IsIn,IsOptional,IsString,MaxLength}from'class-validator';export class ConnectSensorDto{@IsIn(['freestyle_libre','dexcom'])provider!:string;@IsOptional()@IsString()externalId?:string}
