@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
 import 'settings.dart';
 
-void main() => runApp(const DiabetaApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const DiabetaApp());
+}
 
 class DiabetaApp extends StatelessWidget {
   const DiabetaApp({super.key});
@@ -27,13 +31,22 @@ class _AuthGateState extends State<AuthGate> {
   bool ready = false;
   @override void initState() { super.initState(); _check(); }
   Future<void> _check() async {
-    final p = await SharedPreferences.getInstance();
-    if (mounted) setState(() => ready = p.getString('token') != null);
+    const secure = FlutterSecureStorage();
+    final token = await secure.read(key: 'token');
+    if (token == null) {
+      final legacy = await SharedPreferences.getInstance();
+      final oldToken = legacy.getString('token');
+      if (oldToken != null) {
+        await secure.write(key: 'token', value: oldToken);
+        await legacy.remove('token');
+      }
+    }
+    if (mounted) setState(() => ready = await secure.read(key: 'token') != null);
   }
   void loggedIn() { setState(() => ready = true); }
   Future<void> logout() async {
-    final p = await SharedPreferences.getInstance();
-    await p.remove('token');
+    const secure = FlutterSecureStorage();
+    await secure.delete(key: 'token');
     if (mounted) setState(() => ready = false);
   }
   @override Widget build(BuildContext c) =>
@@ -67,8 +80,8 @@ class _LoginState extends State<Login> {
         register ? '/auth/register' : '/auth/login',
         {'email': email.text.trim(), 'password': pass.text, 'firstName': firstName.text.trim().isEmpty ? 'Usuario' : firstName.text.trim()},
       );
-      final p = await SharedPreferences.getInstance();
-      await p.setString('token', r['accessToken'].toString());
+      const secure = FlutterSecureStorage();
+      await secure.write(key: 'token', value: r['accessToken'].toString());
       widget.onLogin();
     } catch (_) {
       if (mounted) setState(() => error = 'No se pudo iniciar sesión. Comprueba los datos.');
