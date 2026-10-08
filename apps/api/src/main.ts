@@ -12,6 +12,7 @@ async function bootstrap() {
   }
   app.enableCors({
     origin: configuredOrigins?.length ? configuredOrigins : true,
+    credentials: false,
   });
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
