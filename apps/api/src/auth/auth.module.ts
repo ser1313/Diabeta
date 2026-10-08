@@ -16,7 +16,7 @@ import { PrismaService } from '../prisma.service';
         }
         return {
           secret: secret || 'change-me-local-only',
-          signOptions: { expiresIn: '12h' },
+          signOptions: { expiresIn: '12h', algorithm: 'HS256' },
         };
       },
     }),
