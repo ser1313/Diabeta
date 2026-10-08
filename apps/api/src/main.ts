@@ -4,8 +4,11 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+  });
   app.use(helmet());
+  app.useBodyParser('json', { limit: '1mb' });
   const configuredOrigins = process.env.CORS_ORIGIN?.split(',').map((x) => x.trim()).filter(Boolean);
   if (process.env.NODE_ENV === 'production' && !configuredOrigins?.length) {
     throw new Error('CORS_ORIGIN must be configured in production');
