@@ -1,10 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   final String baseUrl;
-  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000');
+  ApiClient({String? baseUrl}) : baseUrl = _validatedBaseUrl(baseUrl);
+
+  static String _validatedBaseUrl(String? configured) {
+    final value = configured ?? const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000');
+    final uri = Uri.parse(value);
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      throw ArgumentError('API_URL must use http or https');
+    }
+    if (kReleaseMode && uri.scheme != 'https') {
+      throw StateError('Production API_URL must use HTTPS');
+    }
+    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+  }
   Future<String?> token() async => (await SharedPreferences.getInstance()).getString('token');
   Future<Map<String, dynamic>> _request(Future<http.Response> Function(Map<String, String>) call) async {
     final t = await token();
