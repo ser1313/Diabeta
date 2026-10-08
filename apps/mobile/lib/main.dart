@@ -41,7 +41,8 @@ class _AuthGateState extends State<AuthGate> {
         await legacy.remove('token');
       }
     }
-    if (mounted) setState(() => ready = await secure.read(key: 'token') != null);
+    final migratedToken = await secure.read(key: 'token');
+    if (mounted) setState(() => ready = migratedToken != null);
   }
   void loggedIn() { setState(() => ready = true); }
   Future<void> logout() async {
