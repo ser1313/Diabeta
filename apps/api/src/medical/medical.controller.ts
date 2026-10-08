@@ -1,1 +1,28 @@
-import{Body,Controller,Get,Param,Patch,Req,UseGuards}from'@nestjs/common';import{JwtGuard}from'../auth/jwt.guard';import{MedicalService}from'./medical.service';import{UpdateMedicalDto}from'./medical.dto';@Controller('medical')export class MedicalController{constructor(private m:MedicalService){}@Get('card/:token')card(@Param('token')t:string){return this.m.card(t)}@UseGuards(JwtGuard)@Get()get(@Req()r:any){return this.m.get(r.user.sub)}@UseGuards(JwtGuard)@Patch()update(@Req()r:any,@Body()d:UpdateMedicalDto){return this.m.update(r.user.sub,d)}}
+import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Req, UseGuards } from '@nestjs/common';
+import { JwtGuard } from '../auth/jwt.guard';
+import { MedicalService } from './medical.service';
+import { UpdateMedicalDto } from './medical.dto';
+
+@Controller('medical')
+export class MedicalController {
+  constructor(private m: MedicalService) {}
+
+  @Get('card/:token')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+  @Header('Referrer-Policy', 'no-referrer')
+  card(@Param('token', new ParseUUIDPipe()) t: string) {
+    return this.m.card(t);
+  }
+
+  @UseGuards(JwtGuard)
+  @Get()
+  get(@Req() r: any) {
+    return this.m.get(r.user.sub);
+  }
+
+  @UseGuards(JwtGuard)
+  @Patch()
+  update(@Req() r: any, @Body() d: UpdateMedicalDto) {
+    return this.m.update(r.user.sub, d);
+  }
+}
