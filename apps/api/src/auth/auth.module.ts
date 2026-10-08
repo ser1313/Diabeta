@@ -10,10 +10,13 @@ import { PrismaService } from '../prisma.service';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const secret = config.get<string>('JWT_SECRET');
-        if (!secret && config.get<string>('NODE_ENV') === 'production') {
-          throw new Error('JWT_SECRET must be configured in production');
+        const isProduction = config.get<string>('NODE_ENV') === 'production';
+        const secret = config.get<string>('JWT_SECRET')?.trim();
+
+        if (isProduction && (!secret || secret.length < 32)) {
+          throw new Error('JWT_SECRET must be configured with at least 32 characters in production');
         }
+
         return {
           secret: secret || 'change-me-local-only',
           signOptions: { expiresIn: '12h' },
