@@ -11,12 +11,13 @@ import { PrismaService } from '../prisma.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
-        if (!secret && config.get<string>('NODE_ENV') === 'production') {
-          throw new Error('JWT_SECRET must be configured in production');
+        const production = config.get<string>('NODE_ENV') === 'production';
+        if (production && (!secret || secret.length < 32)) {
+          throw new Error('JWT_SECRET must contain at least 32 characters in production');
         }
         return {
           secret: secret || 'change-me-local-only',
-          signOptions: { expiresIn: '12h' },
+          signOptions: { expiresIn: '12h', algorithm: 'HS256' },
         };
       },
     }),
