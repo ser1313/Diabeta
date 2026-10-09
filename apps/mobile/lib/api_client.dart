@@ -13,6 +13,9 @@ class ApiClient {
     if (uri.scheme != 'http' && uri.scheme != 'https') {
       throw ArgumentError('API_URL must use http or https');
     }
+    if (uri.host.isEmpty || uri.userInfo.isNotEmpty || uri.hasQuery || uri.hasFragment) {
+      throw ArgumentError('API_URL must be an absolute base URL without credentials, query, or fragment');
+    }
     if (kReleaseMode && uri.scheme != 'https') {
       throw StateError('Production API_URL must use HTTPS');
     }
