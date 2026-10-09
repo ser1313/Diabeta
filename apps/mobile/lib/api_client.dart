@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
+  static const _tokenKey = 'token';
+  static const _storage = FlutterSecureStorage();
   final String baseUrl;
   ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? const String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:3000');
-  Future<String?> token() async => (await SharedPreferences.getInstance()).getString('token');
+  Future<String?> token() => _storage.read(key: _tokenKey);
   Future<Map<String, dynamic>> _request(Future<http.Response> Function(Map<String, String>) call) async {
     final t = await token();
     final response = await call({if (t != null) 'Authorization': 'Bearer $t'});
