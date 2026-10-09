@@ -1,3 +1,28 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
-export class RegisterDto { @IsEmail() email!: string; @IsString() @MinLength(8) password!: string; @IsString() @MinLength(1) firstName!: string; }
-export class LoginDto { @IsEmail() email!: string; @IsString() password!: string; }
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+
+export class RegisterDto {
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  password!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  firstName!: string;
+}
+
+export class LoginDto {
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  password!: string;
+}
