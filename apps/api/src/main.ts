@@ -1,5 +1,4 @@
 import { ValidationPipe } from '@nestjs/common';
-import type { NextFunction, Request, Response } from 'express';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -7,7 +6,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
-  app.use((_req: Request, res: Response, next: NextFunction) => {
+  app.use((_req: any, res: any, next: any) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
