@@ -22,6 +22,14 @@ export class SensorsService {
   }
 
   async ingest(userId: string, provider: SensorProvider, readings: SensorReadingDto[]) {
+    const connection = await this.p.sensorConnection.findUnique({
+      where: { userId_provider: { userId, provider } },
+      select: { id: true },
+    });
+    if (!connection) {
+      throw new BadRequestException('Connect this sensor before importing readings');
+    }
+
     const now = Date.now();
     const data = readings.map((reading) => {
       const recordedAt = new Date(reading.recordedAt);
