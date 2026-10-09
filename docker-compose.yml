@@ -18,7 +18,7 @@ services:
     build: ./apps/api
     environment:
       PORT: ${PORT:-3000}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://diabeta:diabeta_dev@postgres:5432/diabeta?schema=public}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-diabeta}:${POSTGRES_PASSWORD:-diabeta_dev}@postgres:5432/${POSTGRES_DB:-diabeta}?schema=public
       JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
     depends_on:
       postgres:
