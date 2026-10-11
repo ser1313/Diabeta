@@ -41,14 +41,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> save() async {
-    if (low >= high) {
-      if (mounted) {
-        setState(() => message = 'El límite bajo debe ser inferior al límite alto.');
-      }
-      return;
-    }
     try {
       await api.patch('/profile', {'firstName': name.text.trim(), 'language': language});
+      if (low >= high) {
+        if (mounted) {
+          setState(() => message =
+              'Perfil guardado. El límite bajo debe ser inferior al límite alto para guardar las alertas.');
+        }
+        return;
+      }
       await api.patch('/settings/alerts', {'alertsEnabled': alerts, 'lowThreshold': low, 'highThreshold': high});
       if (mounted) setState(() => message = 'Ajustes guardados.');
     } catch (_) {
