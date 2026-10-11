@@ -264,8 +264,39 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  String _formatRecordedAt(dynamic raw) {
+    final parsed = DateTime.tryParse(raw?.toString() ?? '');
+    if (parsed == null) return 'Fecha desconocida';
+    final local = parsed.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month · $hour:$minute';
+  }
+
   @override Widget build(BuildContext c) {
     final latest = glucose.isEmpty ? '--' : glucose.first['value'].toString();
+    final recent = <Map<String, String>>[
+      for (final item in glucose.take(5))
+        {
+          'kind': 'Glucosa',
+          'value': '${item['value'] ?? '--'} mg/dL',
+          'recordedAt': item['recordedAt']?.toString() ?? '',
+        },
+      for (final item in insulin.take(5))
+        {
+          'kind': 'Insulina',
+          'value': '${item['units'] ?? '--'} U · ${item['insulinType'] ?? 'tipo no indicado'}',
+          'recordedAt': item['recordedAt']?.toString() ?? '',
+        },
+    ]..sort((a, b) {
+        final dateA = DateTime.tryParse(a['recordedAt'] ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final dateB = DateTime.tryParse(b['recordedAt'] ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return dateB.compareTo(dateA);
+      });
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diabeta'),
@@ -279,6 +310,32 @@ class _DashboardState extends State<Dashboard> {
             const Text('Glucosa actual'),
             Text('$latest mg/dL', style: Theme.of(c).textTheme.displaySmall),
             Text(status),
+            const SizedBox(height: 12),
+            Text('Últimos registros', style: Theme.of(c).textTheme.titleMedium),
+            if (recent.isEmpty)
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text('Todavía no hay registros'),
+                  subtitle: Text('Los datos aparecerán aquí cuando registres glucosa o insulina.'),
+                ),
+              )
+            else
+              ...recent.take(5).map(
+                (entry) => Card(
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(
+                      entry['kind'] == 'Glucosa'
+                          ? Icons.water_drop_outlined
+                          : Icons.medication_outlined,
+                    ),
+                    title: Text('${entry['kind']} · ${entry['value']}'),
+                    subtitle: Text(_formatRecordedAt(entry['recordedAt'])),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
             Card(child: ListTile(title: const Text('Registrar glucosa'), onTap: _recordGlucose)),
             Card(child: ListTile(title: const Text('Registrar insulina'), onTap: _recordInsulin)),
             Card(child: ListTile(title: const Text('Tarjeta médica QR'), onTap: _medical)),
