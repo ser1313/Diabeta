@@ -169,50 +169,143 @@ class _LifestylePageState extends State<LifestylePage> {
   Future<void> addMeal() async {
     final name = TextEditingController();
     final carbs = TextEditingController();
+    String? formError;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Añadir comida'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Comida')),
-          TextField(controller: carbs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Carbohidratos (g)')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () async {
-            await api.post('/nutrition', {'name': name.text.trim(), 'carbs': double.tryParse(carbs.text)});
-            if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Guardar')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Añadir comida'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                maxLength: 200,
+                decoration: const InputDecoration(labelText: 'Comida'),
+              ),
+              TextField(
+                controller: carbs,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Carbohidratos (g, opcional)'),
+              ),
+              if (formError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    formError!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final mealName = name.text.trim();
+                final rawCarbs = carbs.text.trim().replaceAll(',', '.');
+                final carbsValue = rawCarbs.isEmpty ? null : double.tryParse(rawCarbs);
+                if (mealName.isEmpty) {
+                  setDialogState(() => formError = 'Introduce el nombre de la comida.');
+                  return;
+                }
+                if (rawCarbs.isNotEmpty &&
+                    (carbsValue == null || carbsValue < 0 || carbsValue > 1000)) {
+                  setDialogState(() => formError = 'Los carbohidratos deben estar entre 0 y 1000 g.');
+                  return;
+                }
+                try {
+                  await api.post('/nutrition', {
+                    'name': mealName,
+                    if (carbsValue != null) 'carbs': carbsValue,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (_) {
+                  setDialogState(() => formError = 'No se pudo guardar la comida. Inténtalo de nuevo.');
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
-    name.dispose(); carbs.dispose(); await load();
+    name.dispose();
+    carbs.dispose();
+    await load();
   }
 
   Future<void> addActivity() async {
     final type = TextEditingController();
     final minutes = TextEditingController();
+    String? formError;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Añadir actividad'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: type, decoration: const InputDecoration(labelText: 'Tipo de actividad')),
-          TextField(controller: minutes, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Minutos')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () async {
-            final min = int.tryParse(minutes.text);
-            if (min != null && min > 0) {
-              await api.post('/activity', {'type': type.text.trim(), 'minutes': min});
-            }
-            if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Guardar')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Añadir actividad'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: type,
+                maxLength: 100,
+                decoration: const InputDecoration(labelText: 'Tipo de actividad'),
+              ),
+              TextField(
+                controller: minutes,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Minutos (1–1440)'),
+              ),
+              if (formError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    formError!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final activityType = type.text.trim();
+                final duration = int.tryParse(minutes.text.trim());
+                if (activityType.isEmpty) {
+                  setDialogState(() => formError = 'Introduce el tipo de actividad.');
+                  return;
+                }
+                if (duration == null || duration < 1 || duration > 1440) {
+                  setDialogState(() => formError = 'Los minutos deben estar entre 1 y 1440.');
+                  return;
+                }
+                try {
+                  await api.post('/activity', {
+                    'type': activityType,
+                    'minutes': duration,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (_) {
+                  setDialogState(() => formError = 'No se pudo guardar la actividad. Inténtalo de nuevo.');
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
-    type.dispose(); minutes.dispose(); await load();
+    type.dispose();
+    minutes.dispose();
+    await load();
   }
 
   @override
