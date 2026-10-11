@@ -224,7 +224,9 @@ class _LifestylePageState extends State<LifestylePage> {
                   });
                   if (ctx.mounted) Navigator.pop(ctx);
                 } catch (_) {
-                  setDialogState(() => formError = 'No se pudo guardar la comida. Inténtalo de nuevo.');
+                  if (ctx.mounted) {
+                    setDialogState(() => formError = 'No se pudo guardar la comida. Inténtalo de nuevo.');
+                  }
                 }
               },
               child: const Text('Guardar'),
@@ -294,7 +296,9 @@ class _LifestylePageState extends State<LifestylePage> {
                   });
                   if (ctx.mounted) Navigator.pop(ctx);
                 } catch (_) {
-                  setDialogState(() => formError = 'No se pudo guardar la actividad. Inténtalo de nuevo.');
+                  if (ctx.mounted) {
+                    setDialogState(() => formError = 'No se pudo guardar la actividad. Inténtalo de nuevo.');
+                  }
                 }
               },
               child: const Text('Guardar'),
