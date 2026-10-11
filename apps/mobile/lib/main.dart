@@ -228,7 +228,7 @@ class _DashboardState extends State<Dashboard> {
             FilledButton(
               onPressed: () async {
                 final v = double.tryParse(x.text.replaceAll(',', '.'));
-                if (v == null || v <= 0 || v > 200) {
+                if (v == null || v < 0 || v > 200) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Introduce una cantidad válida entre 0 y 200 unidades.'),
