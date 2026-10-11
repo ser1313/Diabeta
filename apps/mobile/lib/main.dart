@@ -173,34 +173,73 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _recordInsulin() async {
     final x = TextEditingController();
+    String insulinType = 'rapid';
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Insulina rápida'),
-        content: TextField(
-          controller: x,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'unidades'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () async {
-              final v = double.tryParse(x.text);
-              if (v != null) {
-                await api.post('/insulin', {
-                  'units': v,
-                  'insulinType': 'rapid',
-                  'recordedAt': DateTime.now().toUtc().toIso8601String(),
-                });
-              }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: const Text('Guardar'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Registrar insulina'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: x,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(hintText: 'unidades'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: insulinType,
+                decoration: const InputDecoration(labelText: 'Tipo de insulina'),
+                items: const [
+                  DropdownMenuItem(value: 'rapid', child: Text('Rápida')),
+                  DropdownMenuItem(value: 'basal', child: Text('Basal / lenta')),
+                  DropdownMenuItem(value: 'mixed', child: Text('Mezcla')),
+                  DropdownMenuItem(value: 'other', child: Text('Otra')),
+                ],
+                onChanged: (value) =>
+                    setDialogState(() => insulinType = value ?? 'rapid'),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final v = double.tryParse(x.text.replaceAll(',', '.'));
+                if (v == null || v <= 0 || v > 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Introduce una cantidad válida entre 0 y 200 unidades.'),
+                    ),
+                  );
+                  return;
+                }
+                try {
+                  await api.post('/insulin', {
+                    'units': v,
+                    'insulinType': insulinType,
+                    'recordedAt': DateTime.now().toUtc().toIso8601String(),
+                  });
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se pudo guardar el registro de insulina.')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
+    x.dispose();
     await load();
   }
 
