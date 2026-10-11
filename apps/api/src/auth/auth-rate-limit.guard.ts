@@ -13,11 +13,15 @@ export class AuthRateLimitGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const key = typeof req.ip === 'string' && req.ip.length ? req.ip : 'unknown';
     const now = Date.now();
+    const currentBeforeCleanup = attempts.get(key);
+    const needsCapacityReclamation =
+      attempts.size >= MAX_TRACKED_KEYS &&
+      (!currentBeforeCleanup || currentBeforeCleanup.resetAt <= now);
 
-    // Sweep periodically, and also at capacity so expired keys cannot block new clients.
+    // Sweep periodically, or when a new/expired key needs capacity at the cap.
     if (
       now - lastCleanupAt >= CLEANUP_INTERVAL_MS ||
-      attempts.size >= MAX_TRACKED_KEYS
+      needsCapacityReclamation
     ) {
       lastCleanupAt = now;
       for (const [trackedKey, entry] of attempts) {
