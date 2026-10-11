@@ -1,9 +1,11 @@
 import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 const WINDOW_MS = 60_000;
+const CLEANUP_INTERVAL_MS = 10_000;
 const MAX_ATTEMPTS = 10;
 const MAX_TRACKED_KEYS = 10_000;
 const attempts = new Map<string, { count: number; resetAt: number }>();
+let lastCleanupAt = 0;
 
 @Injectable()
 export class AuthRateLimitGuard implements CanActivate {
@@ -12,8 +14,13 @@ export class AuthRateLimitGuard implements CanActivate {
     const key = typeof req.ip === 'string' && req.ip.length ? req.ip : 'unknown';
     const now = Date.now();
 
-    for (const [trackedKey, entry] of attempts) {
-      if (entry.resetAt <= now) attempts.delete(trackedKey);
+    // Avoid a full Map scan on every login/register request.
+    // Expired entries are swept periodically; per-key expiry is still checked below.
+    if (now - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+      lastCleanupAt = now;
+      for (const [trackedKey, entry] of attempts) {
+        if (entry.resetAt <= now) attempts.delete(trackedKey);
+      }
     }
 
     const current = attempts.get(key);
