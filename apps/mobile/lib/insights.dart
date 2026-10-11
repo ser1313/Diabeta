@@ -213,7 +213,10 @@ class _LifestylePageState extends State<LifestylePage> {
                   return;
                 }
                 if (rawCarbs.isNotEmpty &&
-                    (carbsValue == null || carbsValue < 0 || carbsValue > 1000)) {
+                    (carbsValue == null ||
+                        !carbsValue.isFinite ||
+                        carbsValue < 0 ||
+                        carbsValue > 1000)) {
                   setDialogState(() => formError = 'Los carbohidratos deben estar entre 0 y 1000 g.');
                   return;
                 }
