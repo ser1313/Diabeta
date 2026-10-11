@@ -144,30 +144,48 @@ class _DashboardState extends State<Dashboard> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Glucosa'),
+        title: const Text('Registrar glucosa'),
         content: TextField(
           controller: x,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(hintText: 'mg/dL'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () async {
-              final v = double.tryParse(x.text);
-              if (v != null) {
+              final v = double.tryParse(x.text.trim().replaceAll(',', '.'));
+              if (v == null || v < 20 || v > 1000) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.'),
+                  ),
+                );
+                return;
+              }
+              try {
                 await api.post('/glucose', {
                   'value': v,
                   'recordedAt': DateTime.now().toUtc().toIso8601String(),
                 });
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No se pudo guardar la lectura de glucosa.')),
+                  );
+                }
               }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: const Text('Guardar'),
           ),
         ],
       ),
     );
+    x.dispose();
     await load();
   }
 
