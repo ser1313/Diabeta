@@ -9,6 +9,7 @@ async function bootstrap() {
     bodyParser: false,
   });
   app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { extended: true, limit: '1mb' });
   app.use(helmet());
   app.use((_req: any, res: any, next: any) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
