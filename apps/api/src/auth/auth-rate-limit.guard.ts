@@ -14,9 +14,11 @@ export class AuthRateLimitGuard implements CanActivate {
     const key = typeof req.ip === 'string' && req.ip.length ? req.ip : 'unknown';
     const now = Date.now();
 
-    // Avoid a full Map scan on every login/register request.
-    // Expired entries are swept periodically; per-key expiry is still checked below.
-    if (now - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+    // Sweep periodically, and also at capacity so expired keys cannot block new clients.
+    if (
+      now - lastCleanupAt >= CLEANUP_INTERVAL_MS ||
+      attempts.size >= MAX_TRACKED_KEYS
+    ) {
       lastCleanupAt = now;
       for (const [trackedKey, entry] of attempts) {
         if (entry.resetAt <= now) attempts.delete(trackedKey);
@@ -25,6 +27,8 @@ export class AuthRateLimitGuard implements CanActivate {
 
     const current = attempts.get(key);
     if (!current || current.resetAt <= now) {
+      // Replace an expired entry for this key before checking the global cap.
+      if (current) attempts.delete(key);
       if (attempts.size >= MAX_TRACKED_KEYS) {
         throw new HttpException('Servicio temporalmente ocupado. Inténtalo de nuevo.', HttpStatus.TOO_MANY_REQUESTS);
       }
