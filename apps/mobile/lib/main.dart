@@ -158,7 +158,7 @@ class _DashboardState extends State<Dashboard> {
           FilledButton(
             onPressed: () async {
               final v = double.tryParse(x.text.trim().replaceAll(',', '.'));
-              if (v == null || v < 20 || v > 1000) {
+              if (v == null || !v.isFinite || v < 20 || v > 1000) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.'),
@@ -228,7 +228,7 @@ class _DashboardState extends State<Dashboard> {
             FilledButton(
               onPressed: () async {
                 final v = double.tryParse(x.text.replaceAll(',', '.'));
-                if (v == null || v < 0 || v > 200) {
+                if (v == null || !v.isFinite || v < 0 || v > 200) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Introduce una cantidad válida entre 0 y 200 unidades.'),
