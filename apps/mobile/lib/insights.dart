@@ -282,6 +282,7 @@ class _LifestylePageState extends State<LifestylePage> {
                   setDialogState(() => formError = validationError);
                   return;
                 }
+                final duration = int.parse(minutes.text.trim());
                 try {
                   await api.post('/activity', {
                     'type': activityType,
