@@ -277,7 +277,6 @@ class _LifestylePageState extends State<LifestylePage> {
             FilledButton(
               onPressed: () async {
                 final activityType = type.text.trim();
-                final duration = int.tryParse(minutes.text.trim());
                 final validationError = validateActivityEntry(activityType, minutes.text);
                 if (validationError != null) {
                   setDialogState(() => formError = validationError);
