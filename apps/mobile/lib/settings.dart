@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'alert_thresholds.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -30,8 +31,9 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() {
         language = p['language']?.toString() ?? 'es';
         alerts = s['alertsEnabled'] != false;
-        low = (s['lowThreshold'] ?? 70).toDouble();
-        high = (s['highThreshold'] ?? 180).toDouble();
+        final thresholds = normalizeAlertThresholds(s['lowThreshold'], s['highThreshold']);
+        low = thresholds.low;
+        high = thresholds.high;
         sensors = results[2] as List<dynamic>;
         loading = false;
       });
@@ -41,15 +43,14 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> save() async {
+    if (!areAlertThresholdsValid(low, high)) {
+      if (mounted) {
+        setState(() => message = 'El límite bajo debe estar entre 40 y 100 mg/dL y ser inferior al límite alto (100–300 mg/dL).');
+      }
+      return;
+    }
     try {
       await api.patch('/profile', {'firstName': name.text.trim(), 'language': language});
-      if (low >= high) {
-        if (mounted) {
-          setState(() => message =
-              'Perfil guardado. El límite bajo debe ser inferior al límite alto para guardar las alertas.');
-        }
-        return;
-      }
       await api.patch('/settings/alerts', {'alertsEnabled': alerts, 'lowThreshold': low, 'highThreshold': high});
       if (mounted) setState(() => message = 'Ajustes guardados.');
     } catch (_) {
