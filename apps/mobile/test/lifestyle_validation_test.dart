@@ -11,7 +11,7 @@ void main() {
 
     test('rejects missing or oversized meal names', () {
       expect(validateMealEntry('   ', '20'), isNotNull);
-      expect(validateMealEntry('x' * 201, '20'), isNotNull);
+      expect(validateMealEntry(List.filled(201, 'x').join(), '20'), isNotNull);
     });
 
     test('rejects invalid, non-finite, negative and excessive carbs', () {
@@ -29,7 +29,7 @@ void main() {
 
     test('rejects empty/oversized types and invalid durations', () {
       expect(validateActivityEntry(' ', '30'), isNotNull);
-      expect(validateActivityEntry('x' * 101, '30'), isNotNull);
+      expect(validateActivityEntry(List.filled(101, 'x').join(), '30'), isNotNull);
       for (final value in ['0', '-1', '1441', '1.5', 'abc']) {
         expect(validateActivityEntry('Caminar', value), isNotNull, reason: value);
       }
