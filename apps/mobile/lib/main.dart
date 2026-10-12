@@ -5,6 +5,7 @@ import 'api_client.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
+import 'dashboard_history.dart';
 import 'settings.dart';
 
 void main() {
@@ -158,7 +159,7 @@ class _DashboardState extends State<Dashboard> {
           FilledButton(
             onPressed: () async {
               final v = double.tryParse(x.text.trim().replaceAll(',', '.'));
-              if (v == null || !v.isFinite || v < 20 || v > 1000) {
+              if (!isValidGlucoseEntry(v)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.'),
@@ -228,7 +229,7 @@ class _DashboardState extends State<Dashboard> {
             FilledButton(
               onPressed: () async {
                 final v = double.tryParse(x.text.replaceAll(',', '.'));
-                if (v == null || !v.isFinite || v < 0 || v > 200) {
+                if (!isValidInsulinEntry(v)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Introduce una cantidad válida entre 0 y 200 unidades.'),
@@ -334,26 +335,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override Widget build(BuildContext c) {
     final latest = glucose.isEmpty ? '--' : glucose.first['value'].toString();
-    final recent = <Map<String, String>>[
-      for (final item in glucose.take(5))
-        {
-          'kind': 'Glucosa',
-          'value': '${item['value'] ?? '--'} mg/dL',
-          'recordedAt': item['recordedAt']?.toString() ?? '',
-        },
-      for (final item in insulin.take(5))
-        {
-          'kind': 'Insulina',
-          'value': '${item['units'] ?? '--'} U · ${item['insulinType'] ?? 'tipo no indicado'}',
-          'recordedAt': item['recordedAt']?.toString() ?? '',
-        },
-    ]..sort((a, b) {
-        final dateA = DateTime.tryParse(a['recordedAt'] ?? '') ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final dateB = DateTime.tryParse(b['recordedAt'] ?? '') ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return dateB.compareTo(dateA);
-      });
+    final recent = buildRecentHistory(glucose, insulin);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diabeta'),
