@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'lifestyle_validation.dart';
 
 class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
@@ -208,16 +209,9 @@ class _LifestylePageState extends State<LifestylePage> {
                 final mealName = name.text.trim();
                 final rawCarbs = carbs.text.trim().replaceAll(',', '.');
                 final carbsValue = rawCarbs.isEmpty ? null : double.tryParse(rawCarbs);
-                if (mealName.isEmpty) {
-                  setDialogState(() => formError = 'Introduce el nombre de la comida.');
-                  return;
-                }
-                if (rawCarbs.isNotEmpty &&
-                    (carbsValue == null ||
-                        !carbsValue.isFinite ||
-                        carbsValue < 0 ||
-                        carbsValue > 1000)) {
-                  setDialogState(() => formError = 'Los carbohidratos deben estar entre 0 y 1000 g.');
+                final validationError = validateMealEntry(mealName, rawCarbs);
+                if (validationError != null) {
+                  setDialogState(() => formError = validationError);
                   return;
                 }
                 try {
@@ -284,12 +278,9 @@ class _LifestylePageState extends State<LifestylePage> {
               onPressed: () async {
                 final activityType = type.text.trim();
                 final duration = int.tryParse(minutes.text.trim());
-                if (activityType.isEmpty) {
-                  setDialogState(() => formError = 'Introduce el tipo de actividad.');
-                  return;
-                }
-                if (duration == null || duration < 1 || duration > 1440) {
-                  setDialogState(() => formError = 'Los minutos deben estar entre 1 y 1440.');
+                final validationError = validateActivityEntry(activityType, minutes.text);
+                if (validationError != null) {
+                  setDialogState(() => formError = validationError);
                   return;
                 }
                 try {
