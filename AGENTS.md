@@ -48,3 +48,13 @@
 - No secrets or sensitive patient data are introduced.
 - Medical safety boundaries are preserved.
 - A human-reviewable PR is ready; merge remains a human decision.
+
+## Token and execution efficiency — frozen project rule
+- Minimize token and tool consumption without weakening correctness, privacy, or clinical safety.
+- Read the relevant files once; reuse verified findings and avoid repeating summaries, context, and unchanged checks.
+- Batch independent repository/CI queries in parallel and group related work into small, coherent tasks.
+- Prefer targeted tests for each change, then rely on CI for the required full validation; do not rerun successful checks without a reason.
+- Keep reports concise: state verified changes, exact test/CI outcomes, blockers, and next action only.
+- Do not claim that agents are running in the background or that Claude is connected unless that capability is actually available and verified.
+- Do not purchase credits, upgrade plans, or invoke paid services to accelerate work without explicit approval.
+- Efficiency must never mean skipping required tests, security checks, human review, or clinical/regulatory gates.
