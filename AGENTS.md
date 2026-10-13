@@ -5,6 +5,12 @@
 - Preserve the architecture already present in this repository: Flutter mobile app under `apps/mobile`; NestJS/TypeScript API under `apps/api`; Prisma and PostgreSQL; Docker Compose; GitHub Actions CI.
 - Treat the checked-in code and tests as the source of truth for implementation details. Do not silently migrate frameworks or introduce a second architecture.
 
+## Standing authorization and approval boundaries
+- The project owner has given standing authorization to continue routine Diabeta Development 1.0 Fast Track work without asking for step-by-step permission: inspect the repository, work on existing or dedicated feature branches, implement bounded changes, add tests, run CI, inspect logs, fix defects, prepare/update pull requests, and publish temporary CI build artifacts needed for validation.
+- Do not ask again for routine permission already covered by this standing authorization. If a tool is blocked or a capability is unavailable, report the blocker accurately and continue with safe work that remains possible.
+- This standing authorization does not authorize direct commits to `main`, merging or enabling auto-merge, production deployment, changing repository security settings, spending money or upgrading paid plans, exposing secrets or real patient data, or bypassing clinical validation. These remain explicit approval gates.
+- Preserve the v2.7 architecture freeze and medical-safety rules below. Never autonomously calculate, prescribe, recommend, or change insulin doses.
+
 ## Work protocol
 1. Inspect the relevant code, tests, package scripts, and current branch before editing.
 2. Work in a dedicated feature/fix branch. Never commit directly to `main`.
