@@ -18,6 +18,23 @@ void main() {
       expect(result.first['value'], '112 mg/dL');
     });
 
+    test('sorts all entries before applying the limit, even when inputs are unordered', () {
+      final result = buildRecentHistory(
+        [
+          {'value': 80, 'recordedAt': '2026-10-01T08:00:00Z'},
+          {'value': 120, 'recordedAt': '2026-10-12T08:00:00Z'},
+          {'value': 95, 'recordedAt': '2026-10-02T08:00:00Z'},
+        ],
+        [
+          {'units': 2, 'insulinType': 'rapid', 'recordedAt': '2026-10-11T08:00:00Z'},
+        ],
+        limit: 2,
+      );
+      expect(result, hasLength(2));
+      expect(result.first['value'], '120 mg/dL');
+      expect(result.last['kind'], 'Insulina');
+    });
+
     test('limits the combined list to five by default and supports custom limits', () {
       final glucose = List.generate(4, (i) => {
         'value': i + 1,
