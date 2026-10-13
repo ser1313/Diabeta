@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'alert_thresholds.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -30,8 +31,9 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() {
         language = p['language']?.toString() ?? 'es';
         alerts = s['alertsEnabled'] != false;
-        low = (s['lowThreshold'] ?? 70).toDouble();
-        high = (s['highThreshold'] ?? 180).toDouble();
+        final thresholds = normalizeAlertThresholds(s['lowThreshold'], s['highThreshold']);
+        low = thresholds.low;
+        high = thresholds.high;
         sensors = results[2] as List<dynamic>;
         loading = false;
       });
@@ -41,6 +43,12 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> save() async {
+    if (!areAlertThresholdsValid(low, high)) {
+      if (mounted) {
+        setState(() => message = 'El límite bajo debe estar entre 40 y 100 mg/dL y ser inferior al límite alto (100–300 mg/dL).');
+      }
+      return;
+    }
     try {
       await api.patch('/profile', {'firstName': name.text.trim(), 'language': language});
       await api.patch('/settings/alerts', {'alertsEnabled': alerts, 'lowThreshold': low, 'highThreshold': high});
@@ -82,9 +90,27 @@ class _SettingsPageState extends State<SettingsPage> {
         Text('Alertas Guardian', style: Theme.of(context).textTheme.titleLarge),
         SwitchListTile(title: const Text('Activar alertas'), value: alerts, onChanged: (v) => setState(() => alerts = v)),
         Text('Límite bajo: ' + low.round().toString() + ' mg/dL'),
-        Slider(min: 40, max: 100, divisions: 60, value: low, onChanged: (v) => setState(() => low = v)),
+        Slider(
+          min: 40,
+          max: 100,
+          divisions: 60,
+          value: low,
+          onChanged: (v) => setState(() {
+            low = v;
+            if (low >= high) high = (low + 10).clamp(100, 300).toDouble();
+          }),
+        ),
         Text('Límite alto: ' + high.round().toString() + ' mg/dL'),
-        Slider(min: 100, max: 300, divisions: 100, value: high, onChanged: (v) => setState(() => high = v)),
+        Slider(
+          min: 100,
+          max: 300,
+          divisions: 100,
+          value: high,
+          onChanged: (v) => setState(() {
+            high = v;
+            if (high <= low) low = (high - 10).clamp(40, 100).toDouble();
+          }),
+        ),
         const SizedBox(height: 12),
         Text('Sensores', style: Theme.of(context).textTheme.titleLarge),
         ListTile(
