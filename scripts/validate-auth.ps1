@@ -45,7 +45,7 @@ for ($attempt = 1; $attempt -le $MaximumAttempts; $attempt++) {
         Add-Content -Path $LogPath -Value "PASS: $(Get-Date -Format o)"
         Write-Host 'PASS: análisis, pruebas y compilación completados.'
         Write-Host "Registro: $LogPath"
-        exit 0
+        return
     }
     catch {
         $failure = $_.Exception.Message
@@ -65,8 +65,7 @@ for ($attempt = 1; $attempt -le $MaximumAttempts; $attempt++) {
             }
         }
         else {
-            Write-Error "Validación bloqueada tras $MaximumAttempts intentos. Consulta el registro: $LogPath"
-            exit 1
+            throw "Validación bloqueada tras $MaximumAttempts intentos. Consulta el registro: $LogPath"
         }
     }
 }
