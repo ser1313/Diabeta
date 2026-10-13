@@ -4,6 +4,7 @@
 - Continue from the official v2.7 freeze and Development 1.0 Fast Track. Do not reopen planning or redesign approved modules unless Sergio explicitly requests it.
 - Preserve the architecture already present in this repository: Flutter mobile app under `apps/mobile`; NestJS/TypeScript API under `apps/api`; Prisma and PostgreSQL; Docker Compose; GitHub Actions CI.
 - Treat the checked-in code and tests as the source of truth for implementation details. Do not silently migrate frameworks or introduce a second architecture.
+- Read and apply the project-wide `skill.md` for the detailed workflow, efficiency rules, testing, medical safety, and definition of done.
 
 ## Standing authorization and approval boundaries
 - The project owner has given standing authorization to continue routine Diabeta Development 1.0 Fast Track work without asking for step-by-step permission: inspect the repository, work on existing or dedicated feature branches, implement bounded changes, add tests, run CI, inspect logs, fix defects, prepare/update pull requests, and publish temporary CI build artifacts needed for validation.
