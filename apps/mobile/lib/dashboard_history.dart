@@ -4,13 +4,13 @@ List<Map<String, String>> buildRecentHistory(
   int limit = 5,
 }) {
   final recent = <Map<String, String>>[
-    for (final item in glucose.take(limit))
+    for (final item in glucose)
       {
         'kind': 'Glucosa',
         'value': '${item['value'] ?? '--'} mg/dL',
         'recordedAt': item['recordedAt']?.toString() ?? '',
       },
-    for (final item in insulin.take(limit))
+    for (final item in insulin)
       {
         'kind': 'Insulina',
         'value': "${item['units'] ?? '--'} U · ${item['insulinType'] ?? 'tipo no indicado'}",
