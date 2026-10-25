@@ -7,7 +7,10 @@ import { PrismaService } from '../prisma.service';
 
 @Module({
   imports: [
+    // Única configuración JWT de la API: global para que todos los módulos
+    // verifiquen los tokens con el mismo secreto con el que se firman.
     JwtModule.registerAsync({
+      global: true,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
