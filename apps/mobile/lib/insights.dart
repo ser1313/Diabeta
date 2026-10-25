@@ -116,7 +116,25 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
         field(active, 'Insulina activa (U)'),
         FilledButton.icon(onPressed: calculate, icon: const Icon(Icons.calculate), label: const Text('Calcular')),
         if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!)),
-        if (result != null) Card(
+        if (result != null && result!['hypoglycemia'] == true) Card(
+          margin: const EdgeInsets.only(top: 16),
+          color: Colors.red.shade700,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.warning_amber, color: Colors.white, size: 32),
+                const SizedBox(width: 12),
+                Expanded(child: Text(
+                  result!['warning']?.toString() ?? 'Glucosa baja: no se aconseja administrar insulina.',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                )),
+              ],
+            ),
+          ),
+        ),
+        if (result != null && result!['hypoglycemia'] != true) Card(
           margin: const EdgeInsets.only(top: 16),
           child: Padding(
             padding: const EdgeInsets.all(16),
