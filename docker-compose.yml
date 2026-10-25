@@ -19,7 +19,9 @@ services:
     environment:
       PORT: ${PORT:-3000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-diabeta}:${POSTGRES_PASSWORD:-diabeta_dev}@postgres:5432/${POSTGRES_DB:-diabeta}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      NODE_ENV: ${NODE_ENV:-development}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en el archivo .env (consulta apps/api/.env.example)}
     depends_on:
       postgres:
         condition: service_healthy
