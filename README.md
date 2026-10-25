@@ -1,6 +1,6 @@
 # Diabeta
 
-Aplicación móvil y API para registro y seguimiento de diabetes. **Es una herramienta de apoyo informativo y no sustituye al equipo sanitario ni calcula/modifica dosis de insulina automáticamente.**
+Aplicación móvil y API para registro y seguimiento de diabetes. **Es una herramienta de apoyo informativo y no sustituye al equipo sanitario. No modifica dosis de insulina automáticamente.**
 
 ## Arquitectura
 - Flutter: aplicación móvil.
@@ -17,6 +17,7 @@ Aplicación móvil y API para registro y seguimiento de diabetes. **Es una herra
 - AI Guardian informativo con umbrales configurables.
 - Nutrición, comidas y actividad.
 - Catálogo de referencia de insulinas rápidas en España; debe verificarse siempre la ficha técnica vigente.
+- Calculadora de bolo opcional e informativa: usa solo los parámetros que introduce la persona usuaria y no calcula ninguna dosis si la glucosa es inferior a 70 mg/dL (muestra un aviso en rojo).
 - Perfil médico y tarjeta QR privada.
 - SOS con llamada al 112 desde el dispositivo.
 - Capa de adaptación para sensores FreeStyle Libre y Dexcom.
