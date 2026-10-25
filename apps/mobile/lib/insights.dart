@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'guardian_status.dart';
 
 class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
@@ -37,13 +38,13 @@ class _InsightsPageState extends State<InsightsPage> {
           children: [
             if (error != null) Text(error!),
             Card(child: ListTile(
-              leading: Icon(g['alert'] == true ? Icons.warning_amber : Icons.shield_outlined),
-              title: Text(g['alert'] == true ? 'Guardian: atención' : 'Guardian: sin alerta'),
+              leading: Icon(guardianNeedsAttention(g) ? Icons.warning_amber : Icons.shield_outlined),
+              title: Text(guardianNeedsAttention(g) ? 'Guardian: atención' : 'Guardian: sin alerta'),
               subtitle: Text(g['message']?.toString() ?? 'Sin información disponible.'),
             )),
             Card(child: ListTile(title: const Text('Tiempo en rango (70–180 mg/dL)'), trailing: Text('${m['timeInRangePercent'] ?? '--'} %'))),
             Card(child: ListTile(title: const Text('Glucosa media'), trailing: Text('${m['averageGlucose'] ?? '--'} mg/dL'))),
-            Card(child: ListTile(title: const Text('HbA1c estimada'), trailing: Text('${m['estimatedA1c'] ?? '--'} %'))),
+            Card(child: ListTile(title: const Text('HbA1c estimada'), trailing: Text(formatEstimatedHbA1c(m)))),
             const SizedBox(height: 12),
             const Text('Estos indicadores son informativos y no constituyen diagnóstico ni sustituyen las indicaciones de tu equipo sanitario.'),
           ],
