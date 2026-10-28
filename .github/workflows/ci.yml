@@ -28,6 +28,7 @@ jobs:
       - run: npx prisma validate
       - run: npx prisma generate
       - run: npm run build
+      - run: npm test
   mobile:
     runs-on: ubuntu-latest
     defaults:
