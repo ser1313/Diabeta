@@ -5,6 +5,7 @@ import 'api_client.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
+import 'dashboard_history.dart';
 import 'settings.dart';
 
 void main() {
@@ -144,63 +145,120 @@ class _DashboardState extends State<Dashboard> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Glucosa'),
+        title: const Text('Registrar glucosa'),
         content: TextField(
           controller: x,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(hintText: 'mg/dL'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
             onPressed: () async {
-              final v = double.tryParse(x.text);
-              if (v != null) {
+              final v = double.tryParse(x.text.trim().replaceAll(',', '.'));
+              if (!isValidGlucoseEntry(v)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.'),
+                  ),
+                );
+                return;
+              }
+              try {
                 await api.post('/glucose', {
                   'value': v,
                   'recordedAt': DateTime.now().toUtc().toIso8601String(),
                 });
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No se pudo guardar la lectura de glucosa.')),
+                  );
+                }
               }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: const Text('Guardar'),
           ),
         ],
       ),
     );
+    x.dispose();
     await load();
   }
 
   Future<void> _recordInsulin() async {
     final x = TextEditingController();
+    String insulinType = 'rapid';
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Insulina rápida'),
-        content: TextField(
-          controller: x,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: 'unidades'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancelar')),
-          FilledButton(
-            onPressed: () async {
-              final v = double.tryParse(x.text);
-              if (v != null) {
-                await api.post('/insulin', {
-                  'units': v,
-                  'insulinType': 'rapid',
-                  'recordedAt': DateTime.now().toUtc().toIso8601String(),
-                });
-              }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: const Text('Guardar'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Registrar insulina'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: x,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(hintText: 'unidades'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: insulinType,
+                decoration: const InputDecoration(labelText: 'Tipo de insulina'),
+                items: const [
+                  DropdownMenuItem(value: 'rapid', child: Text('Rápida')),
+                  DropdownMenuItem(value: 'basal', child: Text('Basal / lenta')),
+                  DropdownMenuItem(value: 'mixed', child: Text('Mezcla')),
+                  DropdownMenuItem(value: 'other', child: Text('Otra')),
+                ],
+                onChanged: (value) =>
+                    setDialogState(() => insulinType = value ?? 'rapid'),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final v = double.tryParse(x.text.replaceAll(',', '.'));
+                if (!isValidInsulinEntry(v)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Introduce una cantidad válida entre 0 y 200 unidades.'),
+                    ),
+                  );
+                  return;
+                }
+                try {
+                  await api.post('/insulin', {
+                    'units': v,
+                    'insulinType': insulinType,
+                    'recordedAt': DateTime.now().toUtc().toIso8601String(),
+                  });
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No se pudo guardar el registro de insulina.')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
+    x.dispose();
     await load();
   }
 
@@ -264,8 +322,20 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  String _formatRecordedAt(dynamic raw) {
+    final parsed = DateTime.tryParse(raw?.toString() ?? '');
+    if (parsed == null) return 'Fecha desconocida';
+    final local = parsed.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month · $hour:$minute';
+  }
+
   @override Widget build(BuildContext c) {
     final latest = glucose.isEmpty ? '--' : glucose.first['value'].toString();
+    final recent = buildRecentHistory(glucose, insulin);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diabeta'),
@@ -279,6 +349,32 @@ class _DashboardState extends State<Dashboard> {
             const Text('Glucosa actual'),
             Text('$latest mg/dL', style: Theme.of(c).textTheme.displaySmall),
             Text(status),
+            const SizedBox(height: 12),
+            Text('Últimos registros', style: Theme.of(c).textTheme.titleMedium),
+            if (recent.isEmpty)
+              const Card(
+                child: ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text('Todavía no hay registros'),
+                  subtitle: Text('Los datos aparecerán aquí cuando registres glucosa o insulina.'),
+                ),
+              )
+            else
+              ...recent.take(5).map(
+                (entry) => Card(
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(
+                      entry['kind'] == 'Glucosa'
+                          ? Icons.water_drop_outlined
+                          : Icons.medication_outlined,
+                    ),
+                    title: Text('${entry['kind']} · ${entry['value']}'),
+                    subtitle: Text(_formatRecordedAt(entry['recordedAt'])),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 8),
             Card(child: ListTile(title: const Text('Registrar glucosa'), onTap: _recordGlucose)),
             Card(child: ListTile(title: const Text('Registrar insulina'), onTap: _recordInsulin)),
             Card(child: ListTile(title: const Text('Tarjeta médica QR'), onTap: _medical)),
