@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_client.dart';
+import 'auth_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
@@ -31,18 +32,23 @@ class _AuthGateState extends State<AuthGate> {
   bool ready = false;
   @override void initState() { super.initState(); _check(); }
   Future<void> _check() async {
-    const secure = FlutterSecureStorage();
-    final token = await secure.read(key: 'token');
-    if (token == null) {
-      final legacy = await SharedPreferences.getInstance();
-      final oldToken = legacy.getString('token');
-      if (oldToken != null) {
-        await secure.write(key: 'token', value: oldToken);
-        await legacy.remove('token');
+    try {
+      const secure = FlutterSecureStorage();
+      var token = await secure.read(key: 'token');
+      if (token == null || token.isEmpty) {
+        final legacy = await SharedPreferences.getInstance();
+        final oldToken = legacy.getString('token');
+        if (oldToken != null && oldToken.isNotEmpty) {
+          await secure.write(key: 'token', value: oldToken);
+          await legacy.remove('token');
+          token = oldToken;
+        }
       }
+      if (mounted) setState(() => ready = token?.isNotEmpty == true);
+    } catch (error) {
+      debugPrint('Diabeta: no se pudo recuperar la sesión (' + error.runtimeType.toString() + ').');
+      if (mounted) setState(() => ready = false);
     }
-    final migratedToken = await secure.read(key: 'token');
-    if (mounted) setState(() => ready = migratedToken != null);
   }
   void loggedIn() { setState(() => ready = true); }
   Future<void> logout() async {
@@ -50,68 +56,35 @@ class _AuthGateState extends State<AuthGate> {
     await secure.delete(key: 'token');
     if (mounted) setState(() => ready = false);
   }
-  @override Widget build(BuildContext c) =>
-      ready ? Dashboard(onLogout: logout) : Login(onLogin: loggedIn);
-}
 
-class Login extends StatefulWidget {
-  final VoidCallback onLogin;
-  const Login({super.key, required this.onLogin});
-  @override State<Login> createState() => _LoginState();
-}
-class _LoginState extends State<Login> {
-  final email = TextEditingController();
-  final pass = TextEditingController();
-  final firstName = TextEditingController();
-  final api = ApiClient();
-  String error = '';
-  bool register = false;
+  Future<void> _authenticate({
+    required String email,
+    required String password,
+    required bool register,
+    String? firstName,
+  }) async {
+    final payload = <String, dynamic>{
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    };
+    // El DTO de login rechaza cualquier campo adicional: firstName solo se
+    // incluye en el endpoint de registro.
+    if (register) payload['firstName'] = firstName?.trim() ?? '';
 
-  @override
-  void dispose() {
-    email.dispose();
-    pass.dispose();
-    firstName.dispose();
-    super.dispose();
-  }
-
-  Future<void> submit() async {
-    try {
-      final r = await api.post(
-        register ? '/auth/register' : '/auth/login',
-        {'email': email.text.trim(), 'password': pass.text, 'firstName': firstName.text.trim().isEmpty ? 'Usuario' : firstName.text.trim()},
-      );
-      const secure = FlutterSecureStorage();
-      await secure.write(key: 'token', value: r['accessToken'].toString());
-      widget.onLogin();
-    } catch (_) {
-      if (mounted) setState(() => error = 'No se pudo iniciar sesión. Comprueba los datos.');
+    final result = await ApiClient().post(
+      register ? '/auth/register' : '/auth/login',
+      payload,
+    );
+    final token = result['accessToken'];
+    if (token is! String || token.trim().isEmpty) {
+      throw const FormatException('La API no devolvió un token de sesión válido.');
     }
+    const secure = FlutterSecureStorage();
+    await secure.write(key: 'token', value: token);
   }
 
-  @override Widget build(BuildContext c) => Scaffold(
-    body: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Icon(Icons.monitor_heart, size: 72),
-            Text('Diabeta', style: Theme.of(c).textTheme.headlineMedium),
-            Text(register ? 'Crear cuenta' : 'Iniciar sesión'),
-            if (register) TextField(controller: firstName, decoration: const InputDecoration(labelText: 'Nombre')),
-            TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
-            TextField(controller: pass, obscureText: true, decoration: const InputDecoration(labelText: 'Contraseña')),
-            if (error.isNotEmpty) Text(error),
-            FilledButton(onPressed: submit, child: Text(register ? 'Crear cuenta' : 'Entrar')),
-            TextButton(
-              onPressed: () => setState(() => register = !register),
-              child: Text(register ? 'Ya tengo cuenta' : 'Crear una cuenta'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  @override Widget build(BuildContext c) =>
+      ready ? Dashboard(onLogout: logout) : LoginScreen(onAuthenticate: _authenticate, onLogin: loggedIn);
 }
 
 class Dashboard extends StatefulWidget {
