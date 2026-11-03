@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'lifestyle_validation.dart';
 
 class InsightsPage extends StatefulWidget {
   const InsightsPage({super.key});
@@ -169,50 +170,140 @@ class _LifestylePageState extends State<LifestylePage> {
   Future<void> addMeal() async {
     final name = TextEditingController();
     final carbs = TextEditingController();
+    String? formError;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Añadir comida'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Comida')),
-          TextField(controller: carbs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Carbohidratos (g)')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () async {
-            await api.post('/nutrition', {'name': name.text.trim(), 'carbs': double.tryParse(carbs.text)});
-            if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Guardar')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Añadir comida'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: name,
+                maxLength: 200,
+                decoration: const InputDecoration(labelText: 'Comida'),
+              ),
+              TextField(
+                controller: carbs,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Carbohidratos (g, opcional)'),
+              ),
+              if (formError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    formError!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final mealName = name.text.trim();
+                final rawCarbs = carbs.text.trim().replaceAll(',', '.');
+                final carbsValue = rawCarbs.isEmpty ? null : double.tryParse(rawCarbs);
+                final validationError = validateMealEntry(mealName, rawCarbs);
+                if (validationError != null) {
+                  setDialogState(() => formError = validationError);
+                  return;
+                }
+                try {
+                  await api.post('/nutrition', {
+                    'name': mealName,
+                    if (carbsValue != null) 'carbs': carbsValue,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (_) {
+                  if (ctx.mounted) {
+                    setDialogState(() => formError = 'No se pudo guardar la comida. Inténtalo de nuevo.');
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
-    name.dispose(); carbs.dispose(); await load();
+    name.dispose();
+    carbs.dispose();
+    await load();
   }
 
   Future<void> addActivity() async {
     final type = TextEditingController();
     final minutes = TextEditingController();
+    String? formError;
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Añadir actividad'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: type, decoration: const InputDecoration(labelText: 'Tipo de actividad')),
-          TextField(controller: minutes, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Minutos')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          FilledButton(onPressed: () async {
-            final min = int.tryParse(minutes.text);
-            if (min != null && min > 0) {
-              await api.post('/activity', {'type': type.text.trim(), 'minutes': min});
-            }
-            if (ctx.mounted) Navigator.pop(ctx);
-          }, child: const Text('Guardar')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Añadir actividad'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: type,
+                maxLength: 100,
+                decoration: const InputDecoration(labelText: 'Tipo de actividad'),
+              ),
+              TextField(
+                controller: minutes,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Minutos (1–1440)'),
+              ),
+              if (formError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    formError!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final activityType = type.text.trim();
+                final validationError = validateActivityEntry(activityType, minutes.text);
+                if (validationError != null) {
+                  setDialogState(() => formError = validationError);
+                  return;
+                }
+                final duration = int.parse(minutes.text.trim());
+                try {
+                  await api.post('/activity', {
+                    'type': activityType,
+                    'minutes': duration,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                } catch (_) {
+                  if (ctx.mounted) {
+                    setDialogState(() => formError = 'No se pudo guardar la actividad. Inténtalo de nuevo.');
+                  }
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
       ),
     );
-    type.dispose(); minutes.dispose(); await load();
+    type.dispose();
+    minutes.dispose();
+    await load();
   }
 
   @override
