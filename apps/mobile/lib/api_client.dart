@@ -3,6 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+class ApiException implements Exception {
+  final int statusCode;
+  final String message;
+
+  const ApiException(this.statusCode, this.message);
+
+  @override
+  String toString() => 'ApiException($statusCode): $message';
+}
+
 class ApiClient {
   static const _tokenKey = 'token';
   static const _storage = FlutterSecureStorage();
@@ -26,10 +36,32 @@ class ApiClient {
   Future<String?> token() => _storage.read(key: _tokenKey);
   Future<Map<String, dynamic>> _request(Future<http.Response> Function(Map<String, String>) call) async {
     final t = await token();
-    final response = await call({if (t != null) 'Authorization': 'Bearer $t'});
-    if (response.statusCode >= 400) throw Exception(response.body);
+    final response = await call({
+      'Accept': 'application/json',
+      if (t != null) 'Authorization': 'Bearer $t',
+    }).timeout(const Duration(seconds: 15));
+    if (response.statusCode >= 400) {
+      throw ApiException(response.statusCode, _responseMessage(response.body));
+    }
     final decoded = jsonDecode(response.body);
-    return Map<String, dynamic>.from(decoded as Map);
+    if (decoded is! Map) {
+      throw const ApiException(502, 'La API devolvió una respuesta no válida.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  String _responseMessage(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map) {
+        final message = decoded['message'];
+        if (message is String) return message;
+        if (message is List) return message.whereType<String>().join('; ');
+      }
+    } on FormatException {
+      // No se propaga el cuerpo sin procesar de una respuesta de error.
+    }
+    return 'La petición no se ha podido completar.';
   }
   Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) => _request((headers) => http.patch(Uri.parse(baseUrl + path), headers: {...headers, 'Content-Type': 'application/json'}, body: jsonEncode(body)));
   Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) => _request((headers) => http.post(Uri.parse(baseUrl + path), headers: {...headers, 'Content-Type': 'application/json'}, body: jsonEncode(body)));
