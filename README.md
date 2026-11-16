@@ -32,7 +32,8 @@ La API dispone de una capa sensors para registrar proveedor, identificador exter
 
 ## Seguridad
 - No guardar secretos reales en Git.
-- Cambiar el JWT secret de Docker antes de producción.
+- Docker Compose no arranca sin JWT_SECRET definido en el archivo .env.
+- En producción: NODE_ENV=production, JWT_SECRET de al menos 32 caracteres y CORS_ORIGIN con los orígenes permitidos; la API se niega a arrancar si falta alguno.
 - HTTPS obligatorio en producción.
 - La tarjeta QR solo expone los campos médicos configurados.
 - Los avisos de Guardian son orientativos y no realizan recomendaciones de dosis.
