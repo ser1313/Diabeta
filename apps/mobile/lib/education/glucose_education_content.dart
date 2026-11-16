@@ -120,35 +120,84 @@ const glucoseMeterEducation = EducationModule(
   ],
 );
 
-/// Patrones que no deben aparecer en contenido educativo no revisado:
-/// dosis, unidades de insulina o cifras de glucosa con unidad.
+/// Números permitidos en el contenido educativo. Solo el teléfono de
+/// emergencias: cualquier otra cifra podría leerse como umbral o dosis.
+const allowedNumbers = {'112'};
+
+/// Patrones que no deben aparecer en contenido educativo no revisado.
+/// Se aplican sobre el texto normalizado (minúsculas y sin tildes).
 final List<RegExp> forbiddenClinicalPatterns = [
-  RegExp(r'\bdosis\b', caseSensitive: false),
-  RegExp(r'\bunidades de insulina\b', caseSensitive: false),
-  RegExp(r'\d+(?:[.,]\d+)?\s*(?:mg/dl|mmol/l)', caseSensitive: false),
-  RegExp(r'\b(?:inyecta|administra|aumenta|reduce)\b', caseSensitive: false),
+  // Dosis y conceptos de pauta de insulina.
+  RegExp(r'\b(?:dosis|bolo|bolos|insulina|ratio|factor de sensibilidad|correccion)\b'),
+  // Las cantidades (mg/dL, mmol/L, unidades) se bloquean con la regla de
+  // cifras de findForbiddenClinicalContent: una unidad sin número no fija
+  // umbrales ni dosis.
+  // Verbos de tratamiento en cualquier forma (inyecta, inyectate, inyectar...).
+  RegExp(r'\b(?:inyect|administr|pinch(?:a|ate|ar)\b|ponte\b|aument|reduc|sube\b|baja\b|suspend)\w*'),
 ];
 
+/// Pasa a minúsculas y elimina tildes para que «INYÉCTATE» y «inyectate»
+/// se traten igual.
+String normalizeForValidation(String text) {
+  const from = 'áàäâéèëêíìïîóòöôúùüûñ';
+  const to = 'aaaaeeeeiiiioooouuuun';
+  final lower = text.toLowerCase();
+  final buffer = StringBuffer();
+  for (final rune in lower.runes) {
+    final ch = String.fromCharCode(rune);
+    final i = from.indexOf(ch);
+    buffer.write(i >= 0 ? to[i] : ch);
+  }
+  return buffer.toString();
+}
+
+/// Devuelve los problemas clínicos encontrados en un texto.
+List<String> findForbiddenClinicalContent(String text) {
+  final normalized = normalizeForValidation(text);
+  final hits = <String>[];
+  for (final m in RegExp(r'\d+(?:[.,]\d+)?').allMatches(normalized)) {
+    if (!allowedNumbers.contains(m.group(0))) hits.add('cifra "${m.group(0)}"');
+  }
+  for (final p in forbiddenClinicalPatterns) {
+    final m = p.firstMatch(normalized);
+    if (m != null) hits.add('término "${m.group(0)!.trim()}"');
+  }
+  return hits;
+}
+
 /// Devuelve la lista de problemas encontrados. Vacía = contenido válido.
+///
+/// El aviso legal no se analiza: es texto fijo que, precisamente, dice que
+/// el módulo no contiene dosis ni tratamiento.
 List<String> validateEducationModule(EducationModule module) {
   final problems = <String>[];
   if (module.title.trim().isEmpty) problems.add('El módulo no tiene título.');
   if (module.disclaimer.trim().isEmpty) problems.add('Falta el aviso legal.');
   if (module.sections.isEmpty) problems.add('El módulo no tiene secciones.');
+  for (final hit in findForbiddenClinicalContent(module.title)) {
+    problems.add('Contenido clínico no permitido en el título: $hit.');
+  }
 
   final ids = <String>{};
   for (final s in module.sections) {
+    if (s.id.trim().isEmpty) problems.add('Sección sin identificador.');
     if (!ids.add(s.id)) problems.add('Sección duplicada: ${s.id}.');
     if (s.title.trim().isEmpty) problems.add('Sección ${s.id} sin título.');
     if (s.steps.isEmpty) problems.add('Sección ${s.id} sin pasos.');
     for (final text in [s.title, s.summary, ...s.steps]) {
-      if (text.trim().isEmpty) problems.add('Texto vacío en ${s.id}.');
-      for (final p in forbiddenClinicalPatterns) {
-        if (p.hasMatch(text)) {
-          problems.add('Contenido clínico no permitido en ${s.id}: "$text"');
-        }
+      if (text.trim().isEmpty) {
+        problems.add('Texto vacío en ${s.id}.');
+        continue;
+      }
+      for (final hit in findForbiddenClinicalContent(text)) {
+        problems.add('Contenido clínico no permitido en ${s.id}: $hit en "$text"');
       }
     }
   }
   return problems;
 }
+
+/// Solo el contenido revisado y válido puede publicarse para todos.
+bool isEducationModulePublishable(EducationModule module) =>
+    module.reviewStatus == ReviewStatus.clinicallyReviewed &&
+    validateEducationModule(module).isEmpty;

@@ -2,20 +2,46 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'glucose_education_content.dart';
 
+/// Vista previa del contenido pendiente de revisión: activa en depuración o
+/// compilando con --dart-define=DIABETA_EDUCATION_PREVIEW=true. En una
+/// compilación release normal está desactivada.
+const bool educationPreviewEnabled =
+    kDebugMode || bool.fromEnvironment('DIABETA_EDUCATION_PREVIEW');
+
+/// Indica si la entrada del módulo debe mostrarse en la app.
+bool isEducationModuleVisible(EducationModule module, {bool previewEnabled = educationPreviewEnabled}) =>
+    isEducationModulePublishable(module) ||
+    (previewEnabled && validateEducationModule(module).isEmpty);
+
 /// Pantalla educativa sobre uso y registro de glucómetros.
 /// No hace llamadas de red ni guarda datos personales.
 class GlucoseEducationPage extends StatelessWidget {
   final EducationModule module;
-  const GlucoseEducationPage({super.key, this.module = glucoseMeterEducation});
+  final bool previewEnabled;
+  const GlucoseEducationPage({
+    super.key,
+    this.module = glucoseMeterEducation,
+    this.previewEnabled = educationPreviewEnabled,
+  });
 
   @override
   Widget build(BuildContext context) {
     final problems = validateEducationModule(module);
+    final Widget body;
+    if (problems.isNotEmpty) {
+      body = _ContentError(problems: problems);
+    } else if (!isEducationModuleVisible(module, previewEnabled: previewEnabled)) {
+      body = const _ContentUnavailable();
+    } else {
+      body = _content();
+    }
     return Scaffold(
-      appBar: AppBar(title: Text(module.title.isEmpty ? 'Educación' : module.title)),
-      body: problems.isNotEmpty
-          ? _ContentError(problems: problems)
-          : ListView(
+      appBar: AppBar(title: Text(module.title.trim().isEmpty ? 'Educación' : module.title)),
+      body: body,
+    );
+  }
+
+  Widget _content() => ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 _NoticeCard(
@@ -29,11 +55,25 @@ class GlucoseEducationPage extends StatelessWidget {
                     text: 'Borrador pendiente de revisión por profesionales sanitarios.',
                   ),
                 const SizedBox(height: 8),
-                for (final s in module.sections) _SectionTile(section: s),
-              ],
-            ),
+        for (final s in module.sections) _SectionTile(section: s),
+      ],
     );
-  }
+}
+
+class _ContentUnavailable extends StatelessWidget {
+  const _ContentUnavailable();
+
+  @override
+  Widget build(BuildContext context) => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Este contenido estará disponible cuando lo revisen profesionales sanitarios.',
+            key: Key('education-content-unavailable'),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
 }
 
 class _NoticeCard extends StatelessWidget {
