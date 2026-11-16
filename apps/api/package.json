@@ -5,13 +5,14 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "build": "nest build",
-    "test": "npm run build && node --test test/*.test.cjs",
+    "test": "node --test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/jwt": "^11.0.0",
     "@prisma/client": "^6.0.0",
