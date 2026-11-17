@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
 import 'dashboard_history.dart';
 import 'settings.dart';
+import 'education/glucose_education_content.dart';
+import 'education/glucose_education_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -352,6 +354,8 @@ class _DashboardState extends State<Dashboard> {
             Card(child: ListTile(title: const Text('Registrar insulina'), onTap: _recordInsulin)),
             Card(child: ListTile(title: const Text('Tarjeta médica QR'), onTap: _medical)),
             Card(child: ListTile(title: const Text('Indicadores + AI Guardian'), leading: const Icon(Icons.insights), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsightsPage())))),
+            if (isEducationModuleVisible(glucoseMeterEducation))
+              Card(child: ListTile(title: const Text('Aprende a usar tu glucómetro'), leading: const Icon(Icons.school_outlined), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const GlucoseEducationPage())))),
             Card(child: ListTile(title: const Text('Calculadora informativa'), leading: const Icon(Icons.calculate), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsulinCalculatorPage())))),
             Card(child: ListTile(title: const Text('Nutrición y actividad'), leading: const Icon(Icons.restaurant_menu), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const LifestylePage())))),
             Card(child: ListTile(title: const Text('Ajustes, alertas y sensores'), leading: const Icon(Icons.settings), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const SettingsPage())))),
