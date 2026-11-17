@@ -31,18 +31,47 @@ Notas de compatibilidad revisadas:
 - `flutter-action` solo usa `actions/cache` si se activa `cache: true`; no está activado.
 - `upload-artifact` v7 mantiene `name`, `path`, `if-no-files-found` y `retention-days`; `archive` sigue siendo `true` por defecto (se publica un zip).
 
-## Herramientas (sin cambios)
+## Herramientas
 | Herramienta | Versión | Dónde |
 |---|---|---|
 | Node.js (API) | 22 | `setup-node` |
 | Java | 17 (Temurin) | `setup-java` |
 | Flutter / Dart | 3.29.0 / 3.7.0 | `flutter-action` |
-| Gradle | 8.10.2 | `apps/mobile/android/gradle/wrapper` |
-| Android Gradle Plugin / Kotlin | 8.7.3 / 2.1.0 | `apps/mobile/android/settings.gradle` |
+| Gradle | 8.11.1 | `apps/mobile/android/gradle/wrapper` |
+| Android Gradle Plugin / Kotlin | 8.9.3 / 2.1.0 | `apps/mobile/android/settings.gradle` |
+| compileSdk / targetSdk | 36 / valor de Flutter (35) | `apps/mobile/android/app/build.gradle` |
 | NDK | 27.0.12077973 | `apps/mobile/android/app/build.gradle` |
 
-Flutter, Gradle, AGP y librerías no se han actualizado: requieren su propia
-PR con pruebas.
+Flutter y las librerías no se han actualizado: requieren su propia PR con pruebas.
+
+## Auditoría de avisos y dependencias (issue #64)
+**Android SDK.** `flutter_secure_storage` 10.x compila con la API 36 y Flutter 3.29
+deja la app en 35, lo que provocaba `requires Android SDK version 36`. Se fija
+`compileSdk = 36`; `targetSdk` no cambia (no altera el comportamiento en ejecución).
+AGP 8.7.3 avisaba entonces de que solo está probado hasta compileSdk 35. AGP 8.9.3
+es la versión mínima con `MAX_RECOMMENDED_COMPILE_SDK_VERSION = 36` (leído del
+bytecode de su JAR en CI) y exige Gradle ≥ 8.11.1. No se usa
+`android.suppressUnsupportedCompileSdk`: el aviso se corrige, no se oculta.
+
+**npm.** `node-abort-controller` llegaba por `@nestjs/cli` 11 →
+`fork-ts-checker-webpack-plugin` (todas sus versiones lo usan). `@nestjs/cli` 12
+lo convierte en *peer* opcional solo para webpack; este proyecto compila con
+`tsc`. El `dist` generado es idéntico con la CLI 11 y la 12. Sin `overrides`.
+
+**pub.** Las 41 versiones nuevas que menciona `flutter pub get` exigen Dart
+3.8–3.11 / Flutter 3.35–3.41 (p. ej. `shared_preferences` 2.5.6, `url_launcher`
+6.3.3, `flutter_secure_storage` 11.2.0). Ninguna está descontinuada, retirada ni
+afectada por avisos de seguridad: son actualizaciones opcionales que dependen de
+actualizar Flutter.
+
+**Pendiente (fuera de alcance):**
+- `Deprecated Gradle features … incompatible with Gradle 9.0` (solo con
+  `--verbose`): viene de `Project.exec` en el plugin Gradle de Flutter 3.29
+  (`flutter.groovy`), obsoleto desde Gradle 8.11. Se resuelve actualizando Flutter.
+- `npm audit`: 9 altas en herramientas de desarrollo — `picomatch` vía
+  `@angular-devkit` (sin versión corregida) y `prisma` 6 vía `deepmerge-ts`
+  (requiere migrar a Prisma 7). Antes eran 11 (2 moderadas).
+- La API no versiona `package-lock.json`.
 
 ## Mantenimiento
 Para actualizar una acción: obtener el commit del tag con
