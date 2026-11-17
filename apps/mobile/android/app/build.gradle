@@ -6,7 +6,11 @@ plugins {
 
 android {
     namespace = "com.example.diabeta"
-    compileSdk = flutter.compileSdkVersion
+    // Flutter 3.29 usa compileSdk 35 por defecto, pero flutter_secure_storage
+    // 10.x compila con la API 36. compileSdk solo afecta a la compilación;
+    // targetSdk se mantiene en el valor de Flutter para no cambiar el
+    // comportamiento de la app en tiempo de ejecución (ver docs/ci.md).
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
