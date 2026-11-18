@@ -64,7 +64,7 @@ lo convierte en *peer* opcional solo para webpack; este proyecto compila con
 afectada por avisos de seguridad: son actualizaciones opcionales que dependen de
 actualizar Flutter.
 
-**Pendiente (fuera de alcance):**
+**Pendiente (fuera de alcance):** plan detallado en `docs/migraciones.md`.
 - `Deprecated Gradle features … incompatible with Gradle 9.0` (solo con
   `--verbose`): viene de `Project.exec` en el plugin Gradle de Flutter 3.29
   (`flutter.groovy`), obsoleto desde Gradle 8.11. Se resuelve actualizando Flutter.
