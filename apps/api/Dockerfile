@@ -3,7 +3,7 @@ WORKDIR /app
 # Instalación reproducible desde package-lock.json.
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY tsconfig.json ./
+COPY tsconfig.json prisma.config.ts ./
 COPY src ./src
 COPY prisma ./prisma
 RUN npx prisma generate
