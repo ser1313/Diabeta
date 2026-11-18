@@ -5,7 +5,7 @@ PR propia, con CI verde y revisión. No afecta a la lógica clínica: los cálcu
 las fórmulas no cambian en ninguna de las dos migraciones.
 
 Evidencia obtenida el 18-11-2026 probando las versiones nuevas sobre copias del
-código de `main` (`af58a90`), fuera del repositorio.
+código de `main` (`af58a90`, antes de #67; #67 no cambia nada de lo evaluado aquí), fuera del repositorio.
 
 ---
 
@@ -13,7 +13,7 @@ código de `main` (`af58a90`), fuera del repositorio.
 
 ### Motivo
 - Elimina la dependencia de `deepmerge-ts` 7 (GHSA-ggr8-5vv4-36mx), hoy mitigada con
-  un `overrides` acotado (PR de la fase 1), que podrá retirarse.
+  un `overrides` acotado (PR #67), que podrá retirarse.
 - Prisma 6 dejará de recibir correcciones.
 
 ### Cambios incompatibles comprobados
@@ -37,7 +37,7 @@ existentes **no cambian**.
    `prisma migrate diff --from-migrations prisma/migrations --to-schema-datamodel prisma/schema.prisma --shadow-database-url …` → vacío.
 4. Pruebas: `npm test` y prueba de humo en Docker con PostgreSQL 16 y datos
    ficticios (health, registro, login, 401 sin token, `_prisma_migrations` = 5),
-   igual que en la fase 1, comparando con la imagen anterior.
+   igual que en la PR #67, comparando con la imagen anterior.
 5. Despliegue (fuera de esta issue): copia de seguridad previa
    (`pg_dump -Fc`) y prueba de restauración en un entorno aparte; `migrate deploy`
    no debe aplicar migraciones nuevas. Vuelta atrás: imagen anterior + la misma BD.
@@ -104,8 +104,12 @@ de la rama anterior, ya madura. Revaluar 3.50.x cuando lleve más tiempo publica
 ---
 
 ## 3. `picomatch` (GHSA-fc5q-39xc-vjpf)
-No existe versión corregida (la última, 4.0.7, es vulnerable). Llega por
-`@nestjs/cli` → `@angular-devkit/core` 22.2.x, que la fija en 4.0.7. Tras la fase 1
-ya no está en la imagen de producción; solo se usa al compilar, con patrones del
-propio proyecto, sin entrada externa. Acción: revisar cuando se publique
-`picomatch` ≥ 4.0.8 o una nueva versión de `@angular-devkit`/`@nestjs/cli`.
+Llega por `@nestjs/cli` → `@angular-devkit/core` 22.2.x, que la fija en 4.0.7, y
+solo se usa al compilar, con patrones del propio proyecto. Desde la PR #67 no está
+en la imagen de producción.
+
+Al revisar esta PR, la base de datos de avisos de npm ya no incluye
+GHSA-fc5q-39xc-vjpf para `picomatch` (retirado o reclasificado). Los avisos
+vigentes (GHSA-3v7f-55p6-f55p y GHSA-c2c7-rcm5-vvqj, `>=4.0.0 <4.0.4`) no afectan
+a 4.0.7, y `npm audit` da 0 vulnerabilidades sin cambiar el lockfile. Acción:
+ninguna. CI no ejecuta `npm audit`; conviene repetirlo al actualizar dependencias.

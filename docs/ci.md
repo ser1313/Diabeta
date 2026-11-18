@@ -68,10 +68,19 @@ actualizar Flutter.
 - `Deprecated Gradle features … incompatible with Gradle 9.0` (solo con
   `--verbose`): viene de `Project.exec` en el plugin Gradle de Flutter 3.29
   (`flutter.groovy`), obsoleto desde Gradle 8.11. Se resuelve actualizando Flutter.
-- `npm audit`: 9 altas en herramientas de desarrollo — `picomatch` vía
-  `@angular-devkit` (sin versión corregida) y `prisma` 6 vía `deepmerge-ts`
-  (requiere migrar a Prisma 7). Antes eran 11 (2 moderadas).
-- La API no versiona `package-lock.json`.
+- `npm audit`: tras #67 quedaban 6 altas de desarrollo (`picomatch` 4.0.7,
+  GHSA-fc5q-39xc-vjpf). Ese aviso ya no figura en la base de datos de npm;
+  `npm audit` = 0 y `npm audit --omit=dev` = 0. Ver `docs/migraciones.md` §3.
+
+## Dependencias de la API (issue #66, PR #67)
+- `apps/api/package-lock.json` versionado; CI y Docker instalan con `npm ci`.
+- `overrides`: `deepmerge-ts` ^8.0.2 solo para `@prisma/config`
+  (GHSA-ggr8-5vv4-36mx). Retirar al migrar a Prisma 7 (`docs/migraciones.md` §1).
+- Imagen Docker: `npm prune --omit=dev` tras compilar; `prisma` es dependencia de
+  producción porque el contenedor ejecuta `prisma migrate deploy`. La imagen no
+  incluye la CLI de Nest ni `picomatch`.
+- Actualizar dependencias de forma explícita (`npm update` o `npm install pkg@x`)
+  y revisar el diff del lockfile en la PR.
 
 ## Mantenimiento
 Para actualizar una acción: obtener el commit del tag con
