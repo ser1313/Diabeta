@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CalculateDoseDto } from './calculator.dto';
 
-// Por debajo de este valor (mg/dL) se considera hipoglucemia y no se calcula
-// ninguna dosis. Decisión aprobada por el propietario del proyecto.
+// Por debajo de este valor (mg/dL) no se calcula ninguna dosis y se devuelve
+// un aviso. Umbral pedido por el propietario del proyecto; pendiente de
+// revisión profesional junto con el resto de la calculadora (issue #52).
 export const HYPOGLYCEMIA_THRESHOLD_MG_DL = 70;
 
 const DISCLAIMER =
