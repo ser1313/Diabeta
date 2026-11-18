@@ -1,0 +1,13 @@
+# Dependencias y artefactos de compilación (no versionar).
+node_modules/
+apps/api/dist/
+apps/mobile/build/
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/android/local.properties
+apps/mobile/android/.gradle/
+apps/mobile/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+# Secretos locales.
+.env
+apps/api/.env
