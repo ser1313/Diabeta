@@ -56,14 +56,19 @@ class _InsightsPageState extends State<InsightsPage> {
   }
 }
 
+typedef CalculatorRequest = Future<Map<String, dynamic>> Function(Map<String, dynamic> body);
+
 class InsulinCalculatorPage extends StatefulWidget {
   final bool enabled;
-  const InsulinCalculatorPage({super.key, this.enabled = clinicalCalculatorEnabled});
+  /// Solo para pruebas: sustituye la llamada a la API.
+  final CalculatorRequest? request;
+  const InsulinCalculatorPage({super.key, this.enabled = clinicalCalculatorEnabled, this.request});
   @override State<InsulinCalculatorPage> createState() => _InsulinCalculatorPageState();
 }
 
 class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
-  final api = ApiClient();
+  late final CalculatorRequest _request =
+      widget.request ?? (body) => ApiClient().post('/calculator/insulin', body);
   final carbs = TextEditingController();
   final ratio = TextEditingController();
   final current = TextEditingController();
@@ -73,7 +78,26 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
   Map<String, dynamic>? result;
   String? error;
 
+  // Cada cálculo o edición invalida las peticiones anteriores: una respuesta
+  // antigua nunca puede sustituir al aviso de glucosa baja ni mostrarse para
+  // valores que ya no son los actuales.
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [carbs, ratio, current, target, factor, active]) {
+      c.addListener(_invalidate);
+    }
+  }
+
+  void _invalidate() {
+    _generation++;
+    if (result != null || error != null) setState(() { result = null; error = null; });
+  }
+
   Future<void> calculate() async {
+    final generation = ++_generation;
     final glucose = double.tryParse(current.text);
     // Protección también en la app: con glucosa baja no se pide ningún cálculo.
     if (glucose != null && glucose < hypoglycemiaThresholdMgDl) {
@@ -81,7 +105,7 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
       return;
     }
     try {
-      final r = await api.post('/calculator/insulin', {
+      final r = await _request({
         'carbsGrams': double.parse(carbs.text),
         'insulinToCarbRatio': double.parse(ratio.text),
         'currentGlucose': double.parse(current.text),
@@ -89,9 +113,9 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
         'correctionFactor': double.parse(factor.text),
         'activeInsulinUnits': double.parse(active.text),
       });
-      if (mounted) setState(() { result = r; error = null; });
+      if (mounted && generation == _generation) setState(() { result = r; error = null; });
     } catch (_) {
-      if (mounted) setState(() => error = 'Revisa todos los parámetros.');
+      if (mounted && generation == _generation) setState(() => error = 'Revisa todos los parámetros.');
     }
   }
 
