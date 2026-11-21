@@ -11,6 +11,8 @@ código de `main` (`af58a90`, antes de #67; #67 no cambia nada de lo evaluado aq
 
 ## 1. Prisma 6.19 → 7.10
 
+**Estado:** implementado en la rama `feat/prisma-7` (ver resultados al final de esta sección).
+
 ### Motivo
 - Elimina la dependencia de `deepmerge-ts` 7 (GHSA-ggr8-5vv4-36mx), hoy mitigada con
   un `overrides` acotado (PR #67), que podrá retirarse.
@@ -46,6 +48,23 @@ existentes **no cambian**.
 - Cambio en la gestión de conexiones (pool de `pg` en lugar del motor de Rust):
   vigilar errores y latencia tras desplegar.
 - Bajo riesgo para los datos: no hay migraciones nuevas.
+
+### Resultados de la implementación (rama `feat/prisma-7`)
+- `prisma.config.ts` con `datasource.url = process.env.DATABASE_URL ?? ''`, en lugar
+  de `env()`, porque `prisma generate` se ejecuta en Docker sin base de datos.
+- `tsconfig.json` con `include: ["src"]`: sin él, `tsc` compilaría también
+  `prisma.config.ts` y movería la salida a `dist/src/`. La estructura de `dist` y
+  el JS generado son idénticos a `main`, salvo `prisma.service.js`.
+- La comprobación de deriva de Prisma 7 ya no admite `--shadow-database-url`.
+  Se hizo así: `migrate deploy` en una BD vacía y luego
+  `migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`
+  → *No difference detected*. `pg_dump --schema-only` de las BD creadas por
+  Prisma 6 y 7: idénticos.
+- Actualización real en Docker: los datos ficticios creados con la imagen de
+  `main` (Prisma 6) se leen con la imagen de Prisma 7 sobre la misma BD
+  (*No pending migrations to apply*). Login, lecturas de glucosa y
+  `/metrics/summary` son idénticos y las escrituras funcionan.
+- `npm audit`: 0. Sin `overrides`.
 
 ---
 
