@@ -1,12 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'auth_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
 import 'dashboard_history.dart';
+import 'offline_glucose_queue.dart';
 import 'settings.dart';
 import 'beta_config.dart';
 import 'education/glucose_education_content.dart';
@@ -99,74 +104,176 @@ class Dashboard extends StatefulWidget {
   const Dashboard({super.key, required this.onLogout});
   @override State<Dashboard> createState() => _DashboardState();
 }
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   final api = ApiClient();
   List<dynamic> glucose = [];
   List<dynamic> insulin = [];
   String status = 'Cargando...';
 
-  @override void initState() { super.initState(); load(); }
+  int pendingGlucose = 0;
+  int _refreshGeneration = 0;
+  bool _signingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_signingOut) load();
+  }
+
+  String? _accountFromToken(String? token) {
+    if (token == null) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+      if (payload is Map && payload['sub'] is String && (payload['sub'] as String).isNotEmpty) {
+        return jsonEncode([api.baseUrl, payload['sub']]);
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
+  }
 
   Future<void> load() async {
+    final generation = ++_refreshGeneration;
+    var remaining = pendingGlucose;
     try {
-      final g = await api.getList('/glucose');
-      final i = await api.getList('/insulin');
-      if (mounted) {
-        setState(() { glucose = g; insulin = i; status = 'Datos sincronizados'; });
+      final token = await api.token();
+      final account = _accountFromToken(token);
+      if (token == null || account == null || !mounted || _signingOut) return;
+      final queue = OfflineGlucoseQueue.forAccount(account);
+      remaining = (await queue.pending()).length;
+      if (mounted && !_signingOut && generation == _refreshGeneration) {
+        setState(() => pendingGlucose = remaining);
+      }
+      if (remaining > 0) {
+        final sync = await queue.drain(
+          (reading) async {
+            if (!mounted || _signingOut || await api.token() != token) {
+              throw StateError('La sesión ha cambiado.');
+            }
+            if (!mounted || _signingOut) throw StateError('La sesión ha cambiado.');
+            await api.post('/glucose', reading.toPayload(), sessionToken: token);
+          },
+          shouldContinue: () => mounted && !_signingOut && generation == _refreshGeneration,
+          shouldPause: (error) =>
+              error is TimeoutException ||
+              error is http.ClientException ||
+              error is StateError ||
+              (error is ApiException &&
+                  (error.statusCode == 401 ||
+                      error.statusCode == 408 ||
+                      error.statusCode == 429 ||
+                      error.statusCode >= 500)),
+        );
+        remaining = sync.remaining;
+      }
+      if (!mounted || _signingOut || await api.token() != token) return;
+      final data = await Future.wait([
+        api.getList('/glucose', sessionToken: token),
+        api.getList('/insulin', sessionToken: token),
+      ]);
+      if (mounted && !_signingOut && generation == _refreshGeneration) {
+        setState(() {
+          glucose = data[0];
+          insulin = data[1];
+          pendingGlucose = remaining;
+          status = remaining == 0 ? 'Datos sincronizados' : 'Datos actualizados';
+        });
       }
     } catch (_) {
-      if (mounted) setState(() => status = 'No se han podido cargar los datos.');
+      if (mounted && !_signingOut && generation == _refreshGeneration) {
+        setState(() {
+          pendingGlucose = remaining;
+          status = 'No se han podido actualizar los datos.';
+        });
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      await widget.onLogout();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _signingOut = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo cerrar la sesión.')),
+      );
     }
   }
 
   Future<void> _recordGlucose() async {
-    final x = TextEditingController();
-    await showDialog<void>(
+    var input = '';
+    var saving = false;
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Registrar glucosa'),
-        content: TextField(
-          controller: x,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(hintText: 'mg/dL'),
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => PopScope(
+          canPop: !saving,
+          child: AlertDialog(
+            title: const Text('Registrar glucosa'),
+            content: TextField(
+              onChanged: (value) => input = value,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'mg/dL'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: saving ? null : () async {
+                  final value = double.tryParse(input.trim().replaceAll(',', '.'));
+                  if (value == null || !isValidGlucoseEntry(value)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.')),
+                    );
+                    return;
+                  }
+                  setDialogState(() => saving = true);
+                  try {
+                    final account = _accountFromToken(await api.token());
+                    if (!mounted || _signingOut || account == null) {
+                      throw StateError('No hay una sesión disponible.');
+                    }
+                    await OfflineGlucoseQueue.forAccount(account).enqueue(value, DateTime.now().toUtc());
+                    if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+                  } catch (_) {
+                    if (dialogContext.mounted) setDialogState(() => saving = false);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No se pudo guardar la lectura en el dispositivo.')),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final v = double.tryParse(x.text.trim().replaceAll(',', '.'));
-              if (!isValidGlucoseEntry(v)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.'),
-                  ),
-                );
-                return;
-              }
-              try {
-                await api.post('/glucose', {
-                  'value': v,
-                  'recordedAt': DateTime.now().toUtc().toIso8601String(),
-                });
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              } catch (_) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No se pudo guardar la lectura de glucosa.')),
-                  );
-                }
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
       ),
     );
-    x.dispose();
-    await load();
+    if (saved == true && mounted) await load();
   }
 
   Future<void> _recordInsulin() async {
@@ -318,7 +425,7 @@ class _DashboardState extends State<Dashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diabeta'),
-        actions: [IconButton(onPressed: widget.onLogout, icon: const Icon(Icons.logout))],
+        actions: [IconButton(onPressed: _signingOut ? null : _logout, icon: const Icon(Icons.logout))],
       ),
       body: RefreshIndicator(
         onRefresh: load,
@@ -328,6 +435,8 @@ class _DashboardState extends State<Dashboard> {
             const Text('Glucosa actual'),
             Text('$latest mg/dL', style: Theme.of(c).textTheme.displaySmall),
             Text(status),
+            if (pendingGlucose > 0)
+              Text('Lecturas de glucosa pendientes de sincronizar: $pendingGlucose'),
             const SizedBox(height: 12),
             Text('Últimos registros', style: Theme.of(c).textTheme.titleMedium),
             if (recent.isEmpty)
