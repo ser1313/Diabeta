@@ -1,9 +1,13 @@
 name: Diabeta beta APK
 
-# APK de pruebas para instalar en un móvil Android. No crea releases ni
-# despliega servicios: solo deja el APK como artefacto temporal de la ejecución.
-# La URL HTTPS de la API de pruebas se toma del secreto BETA_API_URL
-# (Settings > Secrets and variables > Actions); nunca se escribe en el código.
+# APK de pruebas para Android. No crea releases ni despliega servicios.
+#
+# - `verify-release` (PR y ejecución manual): compila el APK release SIN
+#   secretos, con un dominio reservado no funcional, y comprueba su seguridad.
+#   No sube nada.
+# - `beta-apk` (solo ejecución manual desde main): usa el secreto de entorno
+#   BETA_API_URL del entorno protegido `beta`. Un pull_request nunca tiene
+#   acceso a él. Ver docs/beta-android.md.
 
 concurrency:
   group: diabeta-beta-${{ github.ref }}
@@ -17,32 +21,56 @@ on:
   pull_request:
 
 jobs:
-  beta-apk:
+  verify-release:
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/mobile
-    env:
-      BETA_API_URL: ${{ secrets.BETA_API_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: '3.29.0'
+      - run: flutter pub get
+      # Dominio reservado (RFC 2606), no funcional: solo comprueba que la
+      # compilación release funciona. Sin secretos. Calculadora no habilitada.
+      - run: flutter build apk --release --dart-define=API_URL=https://example.invalid --dart-define=DIABETA_BETA=true
+      - name: Comprobaciones de seguridad del APK
+        run: ../../scripts/check-release-apk.sh build/app/outputs/flutter-apk/app-release.apk
+
+  beta-apk:
+    # Solo ejecución manual desde main; nunca en pull_request.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: verify-release
+    runs-on: ubuntu-24.04
+    # Entorno protegido: configurar revisor obligatorio y rama main
+    # (Settings > Environments > beta). BETA_API_URL es secreto de ESTE entorno.
+    environment: beta
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Comprobar la URL de la API de pruebas (sin mostrarla)
-        id: api
+        env:
+          BETA_API_URL: ${{ secrets.BETA_API_URL }}
         run: |
           if [ -z "$BETA_API_URL" ]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            # Dominio reservado (RFC 2606), no funcional: solo para comprobar
-            # que la compilación release funciona. Este APK no se publica.
-            echo "BUILD_API_URL=https://example.invalid" >> "$GITHUB_ENV"
-            echo "::notice::Falta el secreto BETA_API_URL: se comprueba la compilación pero no se publica el APK."
-            exit 0
+            echo "::error::Falta el secreto BETA_API_URL en el entorno 'beta'."
+            exit 1
           fi
           if ! [[ "$BETA_API_URL" =~ ^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$ ]]; then
             echo "::error::BETA_API_URL debe ser una URL https:// sin credenciales, consulta ni fragmento."
             exit 1
           fi
-          echo "publish=true" >> "$GITHUB_OUTPUT"
-          echo "BUILD_API_URL=$BETA_API_URL" >> "$GITHUB_ENV"
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
@@ -52,44 +80,32 @@ jobs:
           flutter-version: '3.29.0'
       - run: flutter pub get
       # Calculadora clínica NO habilitada (sin DIABETA_CLINICAL_CALCULATOR).
-      - run: flutter build apk --release --dart-define=API_URL="$BUILD_API_URL" --dart-define=DIABETA_BETA=true
+      - name: Compilar APK beta
+        env:
+          BETA_API_URL: ${{ secrets.BETA_API_URL }}
+        run: flutter build apk --release --dart-define=API_URL="$BETA_API_URL" --dart-define=DIABETA_BETA=true
       - name: Comprobaciones de seguridad del APK
-        run: |
-          APK=build/app/outputs/flutter-apk/app-release.apk
-          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
-          "$AAPT2" dump badging "$APK" > badging.txt
-          "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > manifest.txt
-          if grep -q "application-debuggable" badging.txt; then echo "::error::El APK es depurable"; exit 1; fi
-          if grep -qi "usesCleartextTraffic.*0xffffffff" manifest.txt; then echo "::error::El APK permite tráfico HTTP sin cifrar"; exit 1; fi
-          grep -E "^package:|sdkVersion|targetSdkVersion" badging.txt
-          echo "APK release: no depurable y sin tráfico HTTP sin cifrar."
+        run: ../../scripts/check-release-apk.sh build/app/outputs/flutter-apk/app-release.apk
       - name: Preparar el APK
-        if: steps.api.outputs.publish == 'true'
         run: |
           NAME="diabeta-beta-${GITHUB_SHA::7}.apk"
           mkdir -p dist && cp build/app/outputs/flutter-apk/app-release.apk "dist/$NAME"
           echo "APK_NAME=$NAME" >> "$GITHUB_ENV"
           echo "APK_SHA256=$(sha256sum "dist/$NAME" | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - name: Subir el APK (artefacto temporal, sin release)
-        if: steps.api.outputs.publish == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           path: apps/mobile/dist/${{ env.APK_NAME }}
           archive: false
           if-no-files-found: error
           retention-days: 7
-      - name: Instrucciones de descarga
-        if: always()
+      - name: Instrucciones
         run: |
           {
             echo "## APK beta de Diabeta"
-            if [ "${{ steps.api.outputs.publish }}" = "true" ]; then
-              echo "- Archivo: \`$APK_NAME\` (sección **Artifacts** de esta ejecución; caduca en 7 días)."
-              echo "- SHA-256: \`$APK_SHA256\`"
-              echo "- Instalación: ver \`docs/beta-android.md\`."
-            else
-              echo "Sin el secreto \`BETA_API_URL\` no se publica APK. Solo se ha comprobado la compilación release."
-            fi
+            echo "- Archivo: \`$APK_NAME\` (Artifacts de esta ejecución; caduca en 7 días)."
+            echo "- SHA-256: \`$APK_SHA256\`"
+            echo "- Descarga directa al móvil sin Artifacts: \`docs/beta-android.md\` §3."
             echo ""
-            echo "Versión de pruebas: la calculadora de bolo está deshabilitada y no debe usarse para decisiones clínicas."
+            echo "Versión de pruebas: calculadora de bolo deshabilitada; usar solo datos ficticios."
           } >> "$GITHUB_STEP_SUMMARY"

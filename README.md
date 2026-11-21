@@ -40,3 +40,6 @@ La API dispone de una capa sensors para registrar proveedor, identificador exter
 
 ## Estado
 MVP core en desarrollo activo sobre la arquitectura congelada v2.7. Los siguientes bloques son endurecimiento, pruebas, UX y conexiones externas autorizadas.
+
+## Retomar el trabajo
+Estado, decisiones y procedimientos: `docs/ESTADO.md`.
