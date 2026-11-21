@@ -30,6 +30,27 @@ La API dispone de una capa sensors para registrar proveedor, identificador exter
 3. La API queda en http://localhost:3000.
 4. Para Flutter Android emulador usar la URL por defecto; para dispositivo físico compilar con --dart-define=API_URL=http://IP_DEL_SERVIDOR:3000.
 
+## Web de pruebas
+
+Arranca la API local y ejecuta:
+
+```sh
+cd apps/mobile
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8080 --dart-define=API_URL=http://127.0.0.1:3000
+```
+
+Abre `http://127.0.0.1:8080`. Si la API restringe CORS, añade ese origen exacto a `CORS_ORIGIN`.
+
+Para comprobar una compilación release, usa una API HTTPS de pruebas con acceso restringido:
+
+```sh
+flutter build web --release --no-web-resources-cdn --pwa-strategy=none --dart-define=API_URL=https://api.example.invalid
+```
+
+Sustituye el dominio de ejemplo por el de tu API. Sirve `build/web` por HTTPS, permite el origen web exacto en el CORS de la API y usa datos ficticios. La URL de la API forma parte del JavaScript compilado. La calculadora clínica debe quedar deshabilitada en la app y en la API antes de distribuir esta compilación.
+
+El arranque web exige un contexto seguro, incluido localhost para desarrollo. CanvasKit y Roboto se sirven desde el mismo origen. La fuente es la copia Roboto Regular del SDK de Flutter 3.29, empaquetada como WOFF2 con su licencia.
+
 ## Seguridad
 - No guardar secretos reales en Git.
 - Docker Compose no arranca sin JWT_SECRET definido en el archivo .env.
