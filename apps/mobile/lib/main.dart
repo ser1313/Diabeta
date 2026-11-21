@@ -191,7 +191,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           glucose = data[0];
           insulin = data[1];
           pendingGlucose = remaining;
-          status = 'Datos sincronizados';
+          status = remaining == 0 ? 'Datos sincronizados' : 'Datos actualizados';
         });
       }
     } catch (_) {
@@ -225,48 +225,51 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Registrar glucosa'),
-          content: TextField(
-            controller: input,
-            enabled: !saving,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(hintText: 'mg/dL'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: saving ? null : () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
+        builder: (dialogContext, setDialogState) => PopScope(
+          canPop: !saving,
+          child: AlertDialog(
+            title: const Text('Registrar glucosa'),
+            content: TextField(
+              controller: input,
+              enabled: !saving,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'mg/dL'),
             ),
-            FilledButton(
-              onPressed: saving ? null : () async {
-                final value = double.tryParse(input.text.trim().replaceAll(',', '.'));
-                if (value == null || !isValidGlucoseEntry(value)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.')),
-                  );
-                  return;
-                }
-                setDialogState(() => saving = true);
-                try {
-                  final account = _accountFromToken(await api.token());
-                  if (!mounted || _signingOut || account == null) {
-                    throw StateError('No hay una sesión disponible.');
-                  }
-                  await OfflineGlucoseQueue.forAccount(account).enqueue(value, DateTime.now().toUtc());
-                  if (dialogContext.mounted) Navigator.pop(dialogContext, true);
-                } catch (_) {
-                  if (dialogContext.mounted) setDialogState(() => saving = false);
-                  if (mounted) {
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: saving ? null : () async {
+                  final value = double.tryParse(input.text.trim().replaceAll(',', '.'));
+                  if (value == null || !isValidGlucoseEntry(value)) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No se pudo guardar la lectura en el dispositivo.')),
+                      const SnackBar(content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.')),
                     );
+                    return;
                   }
-                }
-              },
-              child: const Text('Guardar'),
-            ),
-          ],
+                  setDialogState(() => saving = true);
+                  try {
+                    final account = _accountFromToken(await api.token());
+                    if (!mounted || _signingOut || account == null) {
+                      throw StateError('No hay una sesión disponible.');
+                    }
+                    await OfflineGlucoseQueue.forAccount(account).enqueue(value, DateTime.now().toUtc());
+                    if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+                  } catch (_) {
+                    if (dialogContext.mounted) setDialogState(() => saving = false);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No se pudo guardar la lectura en el dispositivo.')),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Guardar'),
+              ),
+            ],
+          ),
         ),
       ),
     );
