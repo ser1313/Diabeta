@@ -1,6 +1,5 @@
 plugins {
     id "com.android.application"
-    id "org.jetbrains.kotlin.android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -9,7 +8,8 @@ android {
     // compileSdk 36: lo exigen los plugins (flutter_secure_storage) y es el valor
     // por defecto de Flutter 3.47. Solo afecta a la compilación.
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    // NDK de Flutter 3.47 (28.2): lo exigen flutter_secure_storage y jni.
+    ndkVersion = flutter.ndkVersion
 
     defaultConfig {
         applicationId = "com.example.diabeta"
