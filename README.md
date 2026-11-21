@@ -24,6 +24,12 @@ Aplicación móvil y API para registro y seguimiento de diabetes. **Es una herra
 ## Sensores
 La API dispone de una capa sensors para registrar proveedor, identificador externo, estado y sincronización. La conexión directa con servicios propietarios requiere credenciales, API o SDK autorizados por cada fabricante; el proyecto no simula ni inventa dichas credenciales.
 
+## Exportar lecturas de glucosa
+
+`GET /glucose/export.csv?from=2026-11-01&to=2026-11-21` devuelve las lecturas de la cuenta autenticada mediante `Authorization: Bearer <token>`. Las dos fechas son inclusivas y se interpretan en UTC. El CSV contiene las columnas `recordedAt`, `value` y `unit`, con las lecturas ordenadas de menor a mayor fecha.
+
+El intervalo admite hasta 90 días. Si contiene más de 10.000 lecturas, la API responde con un error 422 para que puedas elegir un intervalo más corto.
+
 ## Arranque local
 1. Copiar apps/api/.env.example a .env y establecer un JWT_SECRET aleatorio.
 2. Ejecutar docker compose up --build.
