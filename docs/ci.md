@@ -74,8 +74,8 @@ actualizar Flutter.
 
 ## Dependencias de la API (issue #66, PR #67)
 - `apps/api/package-lock.json` versionado; CI y Docker instalan con `npm ci`.
-- Sin `overrides`: el de `deepmerge-ts` se retiró al migrar a Prisma 7, que ya
-  usa deepmerge-ts 8.0.2 (`docs/migraciones.md` §1).
+- Prisma 7 ya incluye `deepmerge-ts` 8.0.2 (`docs/migraciones.md` §1).
+- Se fija `effect` 3.22.4 dentro de `@prisma/config` por GHSA-7589-6fvf-x4pw.
 - Prisma 7: conexión con `@prisma/adapter-pg` + `pg`; la URL de Migrate está en
   `apps/api/prisma.config.ts`. La CLI de Prisma **no carga `.env`**: en local,
   exportar `DATABASE_URL` o usar `node --env-file=.env node_modules/.bin/prisma …`.
