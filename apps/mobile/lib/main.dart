@@ -219,7 +219,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   }
 
   Future<void> _recordGlucose() async {
-    final input = TextEditingController();
+    var input = '';
     var saving = false;
     final saved = await showDialog<bool>(
       context: context,
@@ -230,7 +230,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           child: AlertDialog(
             title: const Text('Registrar glucosa'),
             content: TextField(
-              controller: input,
+              onChanged: (value) => input = value,
               enabled: !saving,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(hintText: 'mg/dL'),
@@ -242,7 +242,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               ),
               FilledButton(
                 onPressed: saving ? null : () async {
-                  final value = double.tryParse(input.text.trim().replaceAll(',', '.'));
+                  final value = double.tryParse(input.trim().replaceAll(',', '.'));
                   if (value == null || !isValidGlucoseEntry(value)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Introduce una lectura válida entre 20 y 1000 mg/dL.')),
@@ -273,7 +273,6 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
         ),
       ),
     );
-    input.dispose();
     if (saved == true && mounted) await load();
   }
 
