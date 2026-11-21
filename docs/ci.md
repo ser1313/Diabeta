@@ -76,6 +76,9 @@ actualizar Flutter.
 - `apps/api/package-lock.json` versionado; CI y Docker instalan con `npm ci`.
 - `overrides`: `deepmerge-ts` ^8.0.2 solo para `@prisma/config`
   (GHSA-ggr8-5vv4-36mx). Retirar al migrar a Prisma 7 (`docs/migraciones.md` §1).
+- `overrides`: `effect` 3.22.4 solo para `@prisma/config` (GHSA-7589-6fvf-x4pw, ReDoS en
+  `Schema.TemplateLiteral`, que `@prisma/config` no usa). Prisma 6.19.3 fija la 3.21.0 y
+  Prisma 7.10.1 la 3.20.0. Retirar cuando Prisma publique una versión con effect > 3.22.0.
 - Imagen Docker: `npm prune --omit=dev` tras compilar; `prisma` es dependencia de
   producción porque el contenedor ejecuta `prisma migrate deploy`. La imagen no
   incluye la CLI de Nest ni `picomatch`.

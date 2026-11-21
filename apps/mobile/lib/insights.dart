@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_client.dart';
+import 'beta_config.dart';
 import 'guardian_status.dart';
 import 'lifestyle_validation.dart';
 
@@ -55,13 +56,19 @@ class _InsightsPageState extends State<InsightsPage> {
   }
 }
 
+typedef CalculatorRequest = Future<Map<String, dynamic>> Function(Map<String, dynamic> body);
+
 class InsulinCalculatorPage extends StatefulWidget {
-  const InsulinCalculatorPage({super.key});
+  final bool enabled;
+  /// Solo para pruebas: sustituye la llamada a la API.
+  final CalculatorRequest? request;
+  const InsulinCalculatorPage({super.key, this.enabled = clinicalCalculatorEnabled, this.request});
   @override State<InsulinCalculatorPage> createState() => _InsulinCalculatorPageState();
 }
 
 class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
-  final api = ApiClient();
+  late final CalculatorRequest _request =
+      widget.request ?? (body) => ApiClient().post('/calculator/insulin', body);
   final carbs = TextEditingController();
   final ratio = TextEditingController();
   final current = TextEditingController();
@@ -71,9 +78,34 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
   Map<String, dynamic>? result;
   String? error;
 
+  // Cada cálculo o edición invalida las peticiones anteriores: una respuesta
+  // antigua nunca puede sustituir al aviso de glucosa baja ni mostrarse para
+  // valores que ya no son los actuales.
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [carbs, ratio, current, target, factor, active]) {
+      c.addListener(_invalidate);
+    }
+  }
+
+  void _invalidate() {
+    _generation++;
+    if (result != null || error != null) setState(() { result = null; error = null; });
+  }
+
   Future<void> calculate() async {
+    final generation = ++_generation;
+    final glucose = double.tryParse(current.text);
+    // Protección también en la app: con glucosa baja no se pide ningún cálculo.
+    if (glucose != null && glucose < hypoglycemiaThresholdMgDl) {
+      setState(() { result = const {'hypoglycemia': true}; error = null; });
+      return;
+    }
     try {
-      final r = await api.post('/calculator/insulin', {
+      final r = await _request({
         'carbsGrams': double.parse(carbs.text),
         'insulinToCarbRatio': double.parse(ratio.text),
         'currentGlucose': double.parse(current.text),
@@ -81,9 +113,9 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
         'correctionFactor': double.parse(factor.text),
         'activeInsulinUnits': double.parse(active.text),
       });
-      if (mounted) setState(() { result = r; error = null; });
+      if (mounted && generation == _generation) setState(() { result = r; error = null; });
     } catch (_) {
-      if (mounted) setState(() => error = 'Revisa todos los parámetros.');
+      if (mounted && generation == _generation) setState(() => error = 'Revisa todos los parámetros.');
     }
   }
 
@@ -103,41 +135,93 @@ class _InsulinCalculatorPageState extends State<InsulinCalculatorPage> {
   );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Calculadora informativa')),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('Introduce únicamente los parámetros que te haya indicado tu equipo sanitario. Diabeta no establece pautas clínicas.'),
-        const SizedBox(height: 14),
-        field(carbs, 'Carbohidratos (g)'),
-        field(ratio, 'Relación insulina/carbohidratos'),
-        field(current, 'Glucosa actual (mg/dL)'),
-        field(target, 'Glucosa objetivo (mg/dL)'),
-        field(factor, 'Factor de corrección'),
-        field(active, 'Insulina activa (U)'),
-        FilledButton.icon(onPressed: calculate, icon: const Icon(Icons.calculate), label: const Text('Calcular')),
-        if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!)),
-        if (result != null) Card(
+  Widget build(BuildContext context) {
+    if (!widget.enabled) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Calculadora informativa')),
+        body: const Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'La calculadora está deshabilitada hasta su revisión por profesionales sanitarios.',
+            key: Key('calculator-disabled'),
+          ),
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: const Text('Calculadora informativa')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Introduce únicamente los parámetros que te haya indicado tu equipo sanitario. Diabeta no establece pautas clínicas.'),
+          const SizedBox(height: 14),
+          field(carbs, 'Carbohidratos (g)'),
+          field(ratio, 'Relación insulina/carbohidratos'),
+          field(current, 'Glucosa actual (mg/dL)'),
+          field(target, 'Glucosa objetivo (mg/dL)'),
+          field(factor, 'Factor de corrección'),
+          field(active, 'Insulina activa (U)'),
+          FilledButton.icon(onPressed: calculate, icon: const Icon(Icons.calculate), label: const Text('Calcular')),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(error!)),
+          if (result != null) CalculatorResultView(result: result!),
+        ],
+      ),
+    );
+  }
+}
+
+/// Muestra el resultado de la API. Con hipoglucemia solo muestra el aviso en
+/// rojo, nunca una cifra de dosis.
+class CalculatorResultView extends StatelessWidget {
+  final Map<String, dynamic> result;
+  const CalculatorResultView({super.key, required this.result});
+
+  bool get _hypoglycemia => result['hypoglycemia'] == true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hypoglycemia) {
+      return Semantics(
+        liveRegion: true,
+        child: Card(
+          key: const Key('hypoglycemia-warning'),
           margin: const EdgeInsets.only(top: 16),
+          color: Colors.red.shade700,
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Resultado matemático: ${result!['calculatedUnits']} U', style: Theme.of(context).textTheme.titleLarge),
-                Text('Componente comida: ${result!['mealComponent']} U'),
-                Text('Componente corrección: ${result!['correctionComponent']} U'),
-                Text('Descuento de insulina activa: ${result!['activeInsulinDeduction']} U'),
-                const SizedBox(height: 10),
-                Text(result!['disclaimer']?.toString() ?? ''),
+                const ExcludeSemantics(child: Icon(Icons.warning_amber, color: Colors.white, size: 32)),
+                const SizedBox(width: 12),
+                Expanded(child: Text(
+                  result['warning']?.toString() ?? 'Glucosa baja: no se aconseja administrar insulina. Sigue la pauta de tu equipo sanitario para tratar la hipoglucemia.',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                )),
               ],
             ),
           ),
         ),
-      ],
-    ),
-  );
+      );
+    }
+    return Card(
+      margin: const EdgeInsets.only(top: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Resultado matemático: ${result['calculatedUnits']} U', style: Theme.of(context).textTheme.titleLarge),
+            Text('Componente comida: ${result['mealComponent']} U'),
+            Text('Componente corrección: ${result['correctionComponent']} U'),
+            Text('Descuento de insulina activa: ${result['activeInsulinDeduction']} U'),
+            const SizedBox(height: 10),
+            Text(result['disclaimer']?.toString() ?? ''),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 
