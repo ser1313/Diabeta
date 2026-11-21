@@ -12,19 +12,19 @@ Documento para retomar el trabajo en una sesión nueva. No contiene secretos.
 - **Seguridad clínica:** ninguna recomendación de dosis en producción. La calculadora de bolo está **deshabilitada por defecto**: la API devuelve 403 salvo con `CLINICAL_CALCULATOR_ENABLED=true` y la app la oculta salvo con `--dart-define=DIABETA_CLINICAL_CALCULATOR=true`. No modificar las fórmulas sin revisión profesional (issue #52).
 - Con glucosa < 70 mg/dL no se calcula dosis: aviso en rojo, en la API y también en la app.
 - Contenido educativo (`apps/mobile/lib/education`): pendiente de revisión sanitaria, oculto en release.
-- Dependencias: lockfile versionado; imagen Docker sin dependencias de desarrollo; sin `overrides` en Prisma 7.
+- Dependencias: lockfile versionado; imagen Docker sin dependencias de desarrollo. `overrides` acotados a `@prisma/config`: `deepmerge-ts` ^8.0.2 (solo Prisma 6) y `effect` 3.22.4 (GHSA-7589-6fvf-x4pw; también necesario en Prisma 7). CI falla con vulnerabilidades altas en producción (`npm audit --omit=dev`).
 - Secretos: nunca en el código ni en logs. La URL de la beta va en el secreto de entorno `beta` (no de repositorio).
 - Avisos: se corrigen, no se ocultan (p. ej. no usar `android.suppressUnsupportedCompileSdk`).
 
 ## PR abiertas
 | PR | Contenido | Estado |
 |---|---|---|
-| #69 `feat/prisma-7` | Prisma 7.10 + `@prisma/adapter-pg`, `prisma.config.ts`; sin cambios de esquema | CI verde; pendiente de revisión |
+| #69 `feat/prisma-7` | Prisma 7.10 + `@prisma/adapter-pg`, `prisma.config.ts`; sin cambios de esquema | CI verde; pendiente de revisión. **Al actualizarla con `main` tras #70, añadir el override de `effect`** (Prisma 7 trae 3.20.0) |
 | #70 `feat/beta-android` | Beta Android: protección < 70, calculadora deshabilitada, workflow `beta-apk.yml`, guía `docs/beta-android.md`, servidor LAN `scripts/beta_serve_apk.py` | Ver abajo |
 
 ### PR #70: estado
 - Hecho: protección < 70 (rama `feat/calculator-hypoglycemia-guard`), corrección del hallazgo de Codex (respuestas obsoletas de la calculadora), secreto solo en el job manual `beta-apk` con `environment: beta` y desde `main`, `verify-release` sin secretos en las PR, `npm audit` en CI, comprobaciones del APK (`scripts/check-release-apk.sh`), riesgos del túnel documentados y descarga por Wi-Fi sin Artifacts.
-- Pruebas: API 25, Flutter 88.
+- Pruebas: API 25, Flutter 88. `npm audit` de producción: 0 (con el override de `effect`).
 - No fusionar hasta revisar. Tras fusionar #69 o #70, actualizar la otra con `main`.
 
 ## Decisiones pendientes (propietario)
