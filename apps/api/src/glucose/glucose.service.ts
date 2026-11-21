@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { CreateGlucoseDto } from './glucose.dto';
 
 const MAX_FUTURE_SKEW_MS = 10 * 60 * 1000;
-const omitRequestId = { clientRequestId: true } as const;
+const omitInternalIds = { clientRequestId: true, externalReadingId: true } as const;
 
 @Injectable()
 export class GlucoseService {
@@ -18,17 +18,17 @@ export class GlucoseService {
     const data = { userId, value: d.value, source: d.source || 'manual', recordedAt, clientRequestId };
 
     if (!clientRequestId) {
-      return this.p.glucoseReading.create({ data, omit: omitRequestId });
+      return this.p.glucoseReading.create({ data, omit: omitInternalIds });
     }
 
     const [inserted] = await this.p.glucoseReading.createManyAndReturn({
-      data, skipDuplicates: true, omit: omitRequestId,
+      data, skipDuplicates: true, omit: omitInternalIds,
     });
     if (inserted) return inserted;
 
     const existing = await this.p.glucoseReading.findUnique({
       where: { userId_clientRequestId: { userId, clientRequestId } },
-      omit: omitRequestId,
+      omit: omitInternalIds,
     });
     if (!existing) throw new InternalServerErrorException('No se pudo guardar la lectura de glucosa.');
     if (existing.value !== data.value || existing.source !== data.source ||
@@ -39,6 +39,6 @@ export class GlucoseService {
   }
 
   list(userId: string) {
-    return this.p.glucoseReading.findMany({ where: { userId }, orderBy: { recordedAt: 'desc' }, take: 100, omit: omitRequestId });
+    return this.p.glucoseReading.findMany({ where: { userId }, orderBy: { recordedAt: 'desc' }, take: 100, omit: omitInternalIds });
   }
 }

@@ -7,9 +7,12 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  NotContains,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -36,6 +39,13 @@ export class SensorReadingDto {
 
   @IsDateString()
   recordedAt!: string;
+
+  @ValidateIf((_, value) => value !== undefined)
+  @IsString()
+  @MaxLength(200)
+  @Matches(/\S/u)
+  @NotContains('\0')
+  externalReadingId?: string;
 }
 
 export class IngestSensorDto {

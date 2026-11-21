@@ -33,9 +33,11 @@ model GlucoseReading {
   recordedAt DateTime
   createdAt DateTime @default(now())
   clientRequestId String? @db.Uuid
+  externalReadingId String? @db.VarChar(200)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId, recordedAt])
   @@unique([userId, clientRequestId])
+  @@unique([userId, source, externalReadingId])
 }
 
 model InsulinEntry {
