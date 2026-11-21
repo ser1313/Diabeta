@@ -15,6 +15,30 @@ no contiene ninguna URL. Dónde ejecutar la API es una **decisión pendiente**:
 | **B. Túnel público** (Cloudflare Tunnel, Tailscale Funnel…) | **Cualquiera en Internet** que conozca o adivine la URL, mientras el túnel esté abierto | El proveedor del túnel termina el TLS y ve el tráfico. Ver los riesgos abajo |
 | **C. Alojamiento gestionado** (Render, Fly.io…) | Público | Requiere cuenta, coste y **autorización expresa**: no se ha desplegado nada |
 
+### Beta privada en Windows
+
+Desde la raíz del repositorio, con Docker Desktop en modo Linux:
+
+```powershell
+.\scripts\beta-windows.ps1 -Action Start
+```
+
+El script arranca el proyecto aislado `diabeta-beta-local`. La API escucha en
+`127.0.0.1:3000` y PostgreSQL en `127.0.0.1:55432`. Las claves se generan en el
+archivo ignorado `.env.beta.local` y se conservan entre arranques.
+
+Con Tailscale Serve ya configurado para el puerto 3000, abre `/health` en el
+Samsung usando la URL HTTPS de tu red privada. Si responde `status: ok`,
+compila el APK en el PC con Flutter y el SDK de Android configurados:
+
+```powershell
+.\scripts\beta-windows.ps1 -Action Build -ApiUrl 'https://EQUIPO.TAILNET.ts.net'
+```
+
+El script muestra la ruta y el SHA-256 del APK. Puedes copiarlo por USB.
+Al terminar las pruebas, `./scripts/beta-windows.ps1 -Action Stop` detiene la
+API y PostgreSQL y conserva el volumen de pruebas.
+
 ### Riesgos de un túnel público (opción B) y medidas obligatorias
 Mientras el túnel está abierto, la API queda **accesible desde Internet**:
 - Cualquiera puede llamar a `/auth/register` y crear cuentas, e intentar entrar
