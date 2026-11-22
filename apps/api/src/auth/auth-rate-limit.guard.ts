@@ -1,9 +1,11 @@
 import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 const WINDOW_MS = 60_000;
+const CLEANUP_INTERVAL_MS = 10_000;
 const MAX_ATTEMPTS = 10;
 const MAX_TRACKED_KEYS = 10_000;
 const attempts = new Map<string, { count: number; resetAt: number }>();
+let lastCleanupAt = 0;
 
 @Injectable()
 export class AuthRateLimitGuard implements CanActivate {
@@ -11,13 +13,26 @@ export class AuthRateLimitGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const key = typeof req.ip === 'string' && req.ip.length ? req.ip : 'unknown';
     const now = Date.now();
+    const currentBeforeCleanup = attempts.get(key);
+    const needsCapacityReclamation =
+      attempts.size >= MAX_TRACKED_KEYS &&
+      (!currentBeforeCleanup || currentBeforeCleanup.resetAt <= now);
 
-    for (const [trackedKey, entry] of attempts) {
-      if (entry.resetAt <= now) attempts.delete(trackedKey);
+    // Sweep periodically, or when a new/expired key needs capacity at the cap.
+    if (
+      now - lastCleanupAt >= CLEANUP_INTERVAL_MS ||
+      needsCapacityReclamation
+    ) {
+      lastCleanupAt = now;
+      for (const [trackedKey, entry] of attempts) {
+        if (entry.resetAt <= now) attempts.delete(trackedKey);
+      }
     }
 
     const current = attempts.get(key);
     if (!current || current.resetAt <= now) {
+      // Replace an expired entry for this key before checking the global cap.
+      if (current) attempts.delete(key);
       if (attempts.size >= MAX_TRACKED_KEYS) {
         throw new HttpException('Servicio temporalmente ocupado. Inténtalo de nuevo.', HttpStatus.TOO_MANY_REQUESTS);
       }
