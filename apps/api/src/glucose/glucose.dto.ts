@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const finite = { allowNaN: false, allowInfinity: false } as const;
 
@@ -15,4 +15,8 @@ export class CreateGlucoseDto {
 
   @IsDateString()
   recordedAt!: string;
+
+  @ValidateIf((_, value) => value !== undefined)
+  @IsUUID('4')
+  clientRequestId?: string;
 }

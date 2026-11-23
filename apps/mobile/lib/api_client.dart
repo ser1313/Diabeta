@@ -16,6 +16,9 @@ class ApiException implements Exception {
 class ApiClient {
   static const _tokenKey = 'token';
   static const _storage = FlutterSecureStorage();
+  static const _requestTimeout = Duration(seconds: 15);
+  static const _invalidResponse =
+      ApiException(502, 'La API devolvió una respuesta no válida.');
   final String baseUrl;
   ApiClient({String? baseUrl}) : baseUrl = _validatedBaseUrl(baseUrl);
 
@@ -34,20 +37,26 @@ class ApiClient {
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
   Future<String?> token() => _storage.read(key: _tokenKey);
-  Future<Map<String, dynamic>> _request(Future<http.Response> Function(Map<String, String>) call) async {
-    final t = await token();
+  Future<T> _request<T>(
+    Future<http.Response> Function(Map<String, String>) call, {
+    String? sessionToken,
+  }) async {
+    final t = sessionToken ?? await token();
     final response = await call({
       'Accept': 'application/json',
       if (t != null) 'Authorization': 'Bearer $t',
-    }).timeout(const Duration(seconds: 15));
+    }).timeout(_requestTimeout);
     if (response.statusCode >= 400) {
       throw ApiException(response.statusCode, _responseMessage(response.body));
     }
-    final decoded = jsonDecode(response.body);
-    if (decoded is! Map) {
-      throw const ApiException(502, 'La API devolvió una respuesta no válida.');
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      throw _invalidResponse;
     }
-    return Map<String, dynamic>.from(decoded);
+    if (decoded is! T) throw _invalidResponse;
+    return decoded;
   }
 
   String _responseMessage(String body) {
@@ -63,18 +72,35 @@ class ApiClient {
     }
     return 'La petición no se ha podido completar.';
   }
-  Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) => _request((headers) => http.patch(Uri.parse(baseUrl + path), headers: {...headers, 'Content-Type': 'application/json'}, body: jsonEncode(body)));
-  Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) => _request((headers) => http.post(Uri.parse(baseUrl + path), headers: {...headers, 'Content-Type': 'application/json'}, body: jsonEncode(body)));
-  Future<List<dynamic>> getList(String path) async {
-    final t = await token();
-    final r = await http.get(Uri.parse(baseUrl + path), headers: {if (t != null) 'Authorization': 'Bearer $t'});
-    if (r.statusCode >= 400) throw Exception(r.body);
-    return jsonDecode(r.body) as List<dynamic>;
-  }
-  Future<Map<String, dynamic>> getMap(String path) async {
-    final t = await token();
-    final r = await http.get(Uri.parse(baseUrl + path), headers: {if (t != null) 'Authorization': 'Bearer $t'});
-    if (r.statusCode >= 400) throw Exception(r.body);
-    return Map<String, dynamic>.from(jsonDecode(r.body) as Map);
-  }
+  Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) =>
+      _request((headers) => http.patch(
+            Uri.parse(baseUrl + path),
+            headers: {...headers, 'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          ));
+
+  Future<Map<String, dynamic>> post(
+    String path,
+    Map<String, dynamic> body, {
+    String? sessionToken,
+  }) =>
+      _request(
+        (headers) => http.post(
+          Uri.parse(baseUrl + path),
+          headers: {...headers, 'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        ),
+        sessionToken: sessionToken,
+      );
+
+  Future<List<dynamic>> getList(String path, {String? sessionToken}) => _request(
+        (headers) => http.get(Uri.parse(baseUrl + path), headers: headers),
+        sessionToken: sessionToken,
+      );
+
+  Future<Map<String, dynamic>> getMap(String path, {String? sessionToken}) =>
+      _request(
+        (headers) => http.get(Uri.parse(baseUrl + path), headers: headers),
+        sessionToken: sessionToken,
+      );
 }
