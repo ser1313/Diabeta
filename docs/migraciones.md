@@ -51,6 +51,8 @@ existentes **no cambian**.
 
 ## 2. Flutter 3.29.0 → 3.47.9
 
+**Estado:** implementado en la rama `feat/flutter-3.47` (PR borrador; resultados al final de esta sección).
+
 ### Por qué 3.47.9 y no 3.50.0
 3.50.0 es la estable actual, pero se publicó el 09-11-2026. 3.47.9 es la última
 de la rama anterior, ya madura. Revaluar 3.50.x cuando lleve más tiempo publicada.
@@ -102,6 +104,29 @@ de la rama anterior, ya madura. Revaluar 3.50.x cuando lleve más tiempo publica
 - `targetSdk` 36 afecta al comportamiento visible para el usuario.
 
 ---
+
+### Resultados de la implementación (rama `feat/flutter-3.47`, 21-11-2026)
+- Estable actual: 3.50.1, que exige AGP ≥ 9.1.1, Gradle ≥ 9.3.1 y Kotlin ≥ 2.4.10, y cuya rama 3.50
+  tiene 12 días. Se elige **3.47.9** con las versiones de su plantilla oficial: AGP 9.1.0,
+  Gradle 9.3.1 y Kotlin 2.4.0, con `android.newDsl=false` y `android.builtInKotlin=false`.
+- Se mantiene `minSdk` 23 (Flutter lo admite) y se fija `targetSdk` 35 para no cambiar el
+  comportamiento. La app ya no declara el plugin de Kotlin, que aplica Flutter, igual que la
+  plantilla. NDK = `flutter.ndkVersion`. Se elimina Jetifier.
+- Sustituidas las APIs obsoletas `DropdownButtonFormField.value` → `initialValue` (seguro:
+  el valor solo cambia desde el propio campo o se fija antes del primer build) y
+  `hasFlag` → `flagsCollection`.
+- `pubspec.lock` versionado (mismas versiones mayores; p. ej. `shared_preferences` 2.5.6 y
+  `url_launcher` 6.3.3).
+- CI: `analyze` sin avisos, 77/77 pruebas, APK debug. El APK release (R8) también
+  compila, con `targetSdk` 35 y no depurable.
+- Avisos que quedan (compatibilidad futura, solo con `--verbose`): `newDsl=false` y
+  `builtInKotlin=false` (se eliminarán en AGP 10), *Deprecated 'org.jetbrains.kotlin.android'
+  plugin usage* y `Task.project` en ejecución (Gradle 10). Vienen de la plantilla de Flutter
+  3.47 y de los plugins que aún aplican Kotlin (p. ej. `shared_preferences_android`);
+  desaparecerán al actualizar Flutter y los plugins. Ya no aparece el aviso de Gradle 9
+  por `Project.exec`.
+- **iOS:** el repositorio no tiene proyecto `ios/`, así que no se puede verificar. Habría que
+  crearlo (`flutter create --platforms=ios .`) y compilarlo en macOS.
 
 ## 3. `picomatch` (GHSA-fc5q-39xc-vjpf)
 Llega por `@nestjs/cli` → `@angular-devkit/core` 22.2.x, que la fija en 4.0.7, y
