@@ -36,8 +36,8 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          flutter-version: '3.29.0'
-      - run: flutter pub get
+          flutter-version: '3.47.9'
+      - run: flutter pub get --enforce-lockfile
       # Dominio reservado (RFC 2606), no funcional: solo comprueba que la
       # compilación release funciona. Sin secretos. Calculadora no habilitada.
       - run: flutter build apk --release --dart-define=API_URL=https://example.invalid --dart-define=DIABETA_BETA=true
@@ -77,8 +77,8 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          flutter-version: '3.29.0'
-      - run: flutter pub get
+          flutter-version: '3.47.9'
+      - run: flutter pub get --enforce-lockfile
       # Calculadora clínica NO habilitada (sin DIABETA_CLINICAL_CALCULATOR).
       - name: Compilar APK beta
         env:
