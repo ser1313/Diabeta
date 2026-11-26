@@ -78,7 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
         Text('Perfil', style: Theme.of(context).textTheme.titleLarge),
         TextField(controller: name, decoration: const InputDecoration(labelText: 'Nombre')),
         DropdownButtonFormField<String>(
-          value: language,
+          initialValue: language,
           decoration: const InputDecoration(labelText: 'Idioma'),
           items: const [
             DropdownMenuItem(value: 'es', child: Text('Español')),

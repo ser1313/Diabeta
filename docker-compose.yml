@@ -26,6 +26,6 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - "${API_BIND_HOST:-0.0.0.0}:${PORT:-3000}:3000"
 volumes:
   diabeta_pg:

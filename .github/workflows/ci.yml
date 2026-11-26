@@ -30,6 +30,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      # Seguridad: falla si hay vulnerabilidades altas o críticas en producción.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npx prisma validate
       - run: npx prisma generate
       - run: npm run build
@@ -49,8 +51,8 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          flutter-version: '3.29.0'
-      - run: flutter pub get
+          flutter-version: '3.47.9'
+      - run: flutter pub get --enforce-lockfile
       - run: flutter analyze
       - run: flutter test
         if: hashFiles('apps/mobile/test/**') != ''
