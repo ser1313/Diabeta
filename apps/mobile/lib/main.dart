@@ -9,6 +9,7 @@ import 'insights.dart';
 import 'dashboard_history.dart';
 import 'settings.dart';
 import 'beta_config.dart';
+import 'web_demo.dart';
 import 'education/glucose_education_content.dart';
 import 'education/glucose_education_page.dart';
 
@@ -24,7 +25,9 @@ class DiabetaApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     title: 'Diabeta',
     theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-    home: const AuthGate(),
+    home: const bool.fromEnvironment('DIABETA_WEB_DEMO')
+        ? const WebDemo()
+        : const AuthGate(),
     builder: (context, child) => isBetaBuild
         ? Banner(message: 'BETA', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child ?? const SizedBox.shrink())
         : child ?? const SizedBox.shrink(),
