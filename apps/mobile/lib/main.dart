@@ -187,7 +187,7 @@ class _DashboardState extends State<Dashboard> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: insulinType,
+                initialValue: insulinType,
                 decoration: const InputDecoration(labelText: 'Tipo de insulina'),
                 items: const [
                   DropdownMenuItem(value: 'rapid', child: Text('Rápida')),

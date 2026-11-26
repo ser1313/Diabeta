@@ -36,11 +36,11 @@ Notas de compatibilidad revisadas:
 |---|---|---|
 | Node.js (API) | 22 | `setup-node` |
 | Java | 17 (Temurin) | `setup-java` |
-| Flutter / Dart | 3.29.0 / 3.7.0 | `flutter-action` |
-| Gradle | 8.11.1 | `apps/mobile/android/gradle/wrapper` |
-| Android Gradle Plugin / Kotlin | 8.9.3 / 2.1.0 | `apps/mobile/android/settings.gradle` |
-| compileSdk / targetSdk | 36 / valor de Flutter (35) | `apps/mobile/android/app/build.gradle` |
-| NDK | 27.0.12077973 | `apps/mobile/android/app/build.gradle` |
+| Flutter / Dart | 3.47.9 / 3.13.7 | `flutter-action`; dependencias fijadas en `apps/mobile/pubspec.lock` (`--enforce-lockfile`) |
+| Gradle | 9.3.1 | `apps/mobile/android/gradle/wrapper` |
+| Android Gradle Plugin / Kotlin | 9.1.0 / 2.4.0 | `apps/mobile/android/settings.gradle` (versiones de la plantilla de Flutter 3.47.9) |
+| compileSdk / targetSdk / minSdk | 36 / 35 (explícito) / 23 | `apps/mobile/android/app/build.gradle` |
+| NDK | `flutter.ndkVersion` (28.2.13676358) | `apps/mobile/android/app/build.gradle` |
 
 Flutter y las librerías no se han actualizado: requieren su propia PR con pruebas.
 
