@@ -36,11 +36,11 @@ Notas de compatibilidad revisadas:
 |---|---|---|
 | Node.js (API) | 22 | `setup-node` |
 | Java | 17 (Temurin) | `setup-java` |
-| Flutter / Dart | 3.29.0 / 3.7.0 | `flutter-action` |
-| Gradle | 8.11.1 | `apps/mobile/android/gradle/wrapper` |
-| Android Gradle Plugin / Kotlin | 8.9.3 / 2.1.0 | `apps/mobile/android/settings.gradle` |
-| compileSdk / targetSdk | 36 / valor de Flutter (35) | `apps/mobile/android/app/build.gradle` |
-| NDK | 27.0.12077973 | `apps/mobile/android/app/build.gradle` |
+| Flutter / Dart | 3.47.9 / 3.13.7 | `flutter-action`; dependencias fijadas en `apps/mobile/pubspec.lock` (`--enforce-lockfile`) |
+| Gradle | 9.3.1 | `apps/mobile/android/gradle/wrapper` |
+| Android Gradle Plugin / Kotlin | 9.1.0 / 2.4.0 | `apps/mobile/android/settings.gradle` (versiones de la plantilla de Flutter 3.47.9) |
+| compileSdk / targetSdk / minSdk | 36 / 35 (explícito) / 23 | `apps/mobile/android/app/build.gradle` |
+| NDK | `flutter.ndkVersion` (28.2.13676358) | `apps/mobile/android/app/build.gradle` |
 
 Flutter y las librerías no se han actualizado: requieren su propia PR con pruebas.
 
@@ -76,6 +76,9 @@ actualizar Flutter.
 - `apps/api/package-lock.json` versionado; CI y Docker instalan con `npm ci`.
 - `overrides`: `deepmerge-ts` ^8.0.2 solo para `@prisma/config`
   (GHSA-ggr8-5vv4-36mx). Retirar al migrar a Prisma 7 (`docs/migraciones.md` §1).
+- `overrides`: `effect` 3.22.4 solo para `@prisma/config` (GHSA-7589-6fvf-x4pw, ReDoS en
+  `Schema.TemplateLiteral`, que `@prisma/config` no usa). Prisma 6.19.3 fija la 3.21.0 y
+  Prisma 7.10.1 la 3.20.0. Retirar cuando Prisma publique una versión con effect > 3.22.0.
 - Imagen Docker: `npm prune --omit=dev` tras compilar; `prisma` es dependencia de
   producción porque el contenedor ejecuta `prisma migrate deploy`. La imagen no
   incluye la CLI de Nest ni `picomatch`.

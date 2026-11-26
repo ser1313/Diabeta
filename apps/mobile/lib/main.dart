@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'insights.dart';
 import 'dashboard_history.dart';
 import 'settings.dart';
+import 'beta_config.dart';
 import 'education/glucose_education_content.dart';
 import 'education/glucose_education_page.dart';
 
@@ -24,6 +25,9 @@ class DiabetaApp extends StatelessWidget {
     title: 'Diabeta',
     theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
     home: const AuthGate(),
+    builder: (context, child) => isBetaBuild
+        ? Banner(message: 'BETA', location: BannerLocation.topEnd, color: Colors.deepOrange, child: child ?? const SizedBox.shrink())
+        : child ?? const SizedBox.shrink(),
   );
 }
 
@@ -183,7 +187,7 @@ class _DashboardState extends State<Dashboard> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: insulinType,
+                initialValue: insulinType,
                 decoration: const InputDecoration(labelText: 'Tipo de insulina'),
                 items: const [
                   DropdownMenuItem(value: 'rapid', child: Text('Rápida')),
@@ -356,7 +360,8 @@ class _DashboardState extends State<Dashboard> {
             Card(child: ListTile(title: const Text('Indicadores + AI Guardian'), leading: const Icon(Icons.insights), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsightsPage())))),
             if (isEducationModuleVisible(glucoseMeterEducation))
               Card(child: ListTile(title: const Text('Aprende a usar tu glucómetro'), leading: const Icon(Icons.school_outlined), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const GlucoseEducationPage())))),
-            Card(child: ListTile(title: const Text('Calculadora informativa'), leading: const Icon(Icons.calculate), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsulinCalculatorPage())))),
+            if (clinicalCalculatorEnabled)
+              Card(child: ListTile(title: const Text('Calculadora informativa'), leading: const Icon(Icons.calculate), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const InsulinCalculatorPage())))),
             Card(child: ListTile(title: const Text('Nutrición y actividad'), leading: const Icon(Icons.restaurant_menu), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const LifestylePage())))),
             Card(child: ListTile(title: const Text('Ajustes, alertas y sensores'), leading: const Icon(Icons.settings), onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const SettingsPage())))),
             Card(child: ListTile(title: const Text('SOS'), onTap: _sos)),

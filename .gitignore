@@ -10,4 +10,7 @@ apps/mobile/android/.gradle/
 apps/mobile/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 # Secretos locales.
 .env
+.env.*
+!.env.example
 apps/api/.env
+__pycache__/

@@ -1,7 +1,6 @@
 import 'package:diabeta/education/glucose_education_content.dart';
 import 'package:diabeta/education/glucose_education_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _wrap(Widget child, {double textScale = 1.0}) => MaterialApp(
@@ -235,7 +234,7 @@ void main() {
       await tester.pumpWidget(_wrap(const GlucoseEducationPage(previewEnabled: true)));
       final title = glucoseMeterEducation.sections.first.title;
       final node = tester.getSemantics(find.text(title));
-      expect(node.getSemanticsData().hasFlag(SemanticsFlag.isHeader), isTrue);
+      expect(node.getSemanticsData().flagsCollection.isHeader, isTrue);
       handle.dispose();
     });
 
