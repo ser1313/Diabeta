@@ -93,7 +93,9 @@ class _WebDemoState extends State<WebDemo> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => _DemoSectionPage(section: section),
+                      builder: (_) => section.title == 'Entrenamiento'
+                          ? const _TrainingDemo()
+                          : _DemoSectionPage(section: section),
                     ),
                   ),
                 ),
@@ -153,13 +155,7 @@ const _sections = [
     'GMI': 'En un informe del sensor se mostraría como un indicador calculado a partir de la glucosa media.',
     'HbA1c de laboratorio': 'Ejemplo de seguimiento: 7,4 % en junio y 7,1 % en septiembre.',
   }),
-  _DemoSection('Entrenamiento', Icons.fitness_center, {
-    'Perder grasa': 'Ejemplo de semana: lunes caminata, miércoles fuerza general y viernes bicicleta.',
-    'Ganar volumen': 'Ejemplo de semana: lunes tren superior, miércoles tren inferior y viernes cuerpo completo.',
-    'Definición': 'Ejemplo de semana: lunes fuerza, miércoles actividad aeróbica y viernes fuerza.',
-    'Mejorar resistencia': 'Ejemplo de semana: lunes bicicleta, miércoles caminata y sábado sesión aeróbica.',
-    'Glucosa y actividad': 'Sesión ficticia: antes 135, durante 123 y después 117 mg/dL.',
-  }),
+  _DemoSection('Entrenamiento', Icons.fitness_center, {}),
   _DemoSection('Comidas y carbohidratos', Icons.restaurant, {
     'Diario de comidas': 'Ejemplo guardado: yogur natural y manzana · 08:30.',
     'Estimar por foto': 'Resultado simulado: se detectan arroz, pollo y verduras. La porción se revisaría antes de guardar.',
@@ -217,4 +213,111 @@ class _DemoSectionPage extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _TrainingDemo extends StatefulWidget {
+  const _TrainingDemo();
+
+  @override
+  State<_TrainingDemo> createState() => _TrainingDemoState();
+}
+
+class _TrainingDemoState extends State<_TrainingDemo> {
+  static const _key = 'diabeta.demo.training.v1';
+  static const _plans = {
+    'Perder grasa': ['Lunes · Caminata', 'Miércoles · Fuerza general', 'Viernes · Bicicleta'],
+    'Ganar volumen': ['Lunes · Tren superior', 'Miércoles · Tren inferior', 'Viernes · Cuerpo completo'],
+    'Definición': ['Lunes · Fuerza', 'Miércoles · Actividad aeróbica', 'Viernes · Fuerza'],
+    'Resistencia': ['Lunes · Bicicleta', 'Miércoles · Caminata', 'Sábado · Sesión aeróbica'],
+  };
+
+  final _storage = SharedPreferencesAsync();
+  Set<String> _done = {};
+  String _goal = _plans.keys.first;
+  bool _busy = true;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final saved = await _storage.getStringList(_key) ?? const <String>[];
+      if (!mounted) return;
+      setState(() {
+        _done = saved.toSet();
+        _ready = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo recuperar el progreso.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _toggle(String session, bool checked) async {
+    if (_busy || !_ready) return;
+    final key = '$_goal/$session';
+    final next = {..._done};
+    if (checked) {
+      next.add(key);
+    } else {
+      next.remove(key);
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _storage.setStringList(_key, next.toList());
+      if (mounted) setState(() => _done = next);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo guardar el progreso.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sessions = _plans[_goal]!;
+    final completed = sessions.where((session) => _done.contains('$_goal/$session')).length;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Entrenamiento')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text('Planes de ejemplo. El progreso se guarda en este navegador.'),
+          const SizedBox(height: 16),
+          DropdownButton<String>(
+            value: _goal,
+            isExpanded: true,
+            items: [
+              for (final goal in _plans.keys)
+                DropdownMenuItem(value: goal, child: Text(goal)),
+            ],
+            onChanged: _busy ? null : (goal) {
+              if (goal != null) setState(() => _goal = goal);
+            },
+          ),
+          if (_ready) Text('$completed de ${sessions.length} sesiones completadas'),
+          if (_error != null) Text(_error!),
+          for (final session in sessions)
+            CheckboxListTile(
+              title: Text(session),
+              value: _done.contains('$_goal/$session'),
+              onChanged: _busy || !_ready ? null : (value) => _toggle(session, value ?? false),
+            ),
+          const ListTile(
+            title: Text('Glucosa y actividad'),
+            subtitle: Text('Ejemplo ficticio: antes 135, durante 123 y después 117 mg/dL.'),
+          ),
+        ],
+      ),
+    );
+  }
 }
