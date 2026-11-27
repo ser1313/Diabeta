@@ -95,7 +95,10 @@ class _WebDemoState extends State<WebDemo> {
                     MaterialPageRoute<void>(
                       builder: (_) => section.title == 'Entrenamiento'
                           ? const _TrainingDemo()
-                          : _DemoSectionPage(section: section),
+                          : _DemoSectionPage(
+                              section: section,
+                              glucoseEntries: _entries,
+                            ),
                     ),
                   ),
                 ),
@@ -177,9 +180,10 @@ const _sections = [
 ];
 
 class _DemoSectionPage extends StatelessWidget {
-  const _DemoSectionPage({required this.section});
+  const _DemoSectionPage({required this.section, required this.glucoseEntries});
 
   final _DemoSection section;
+  final List<String> glucoseEntries;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -192,6 +196,8 @@ class _DemoSectionPage extends StatelessWidget {
           children: [
             const Text('Demostración con datos ficticios'),
             const SizedBox(height: 12),
+            if (section.title == 'Tendencias e informes')
+              _DemoGlucoseSummary(entries: glucoseEntries),
             if (section.title == 'Comidas y carbohidratos') const _MealDiary(),
             for (final entry in section.entries.entries)
               Card(
@@ -438,6 +444,40 @@ class _MealDiaryState extends State<_MealDiary> {
           ListTile(title: Text(entry)),
         const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+class _DemoGlucoseSummary extends StatelessWidget {
+  const _DemoGlucoseSummary({required this.entries});
+
+  final List<String> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = <int>[];
+    final readingPattern = RegExp(r' · ([0-9]+) mg/dL$');
+    for (final entry in entries) {
+      if (entry == 'Hoy, 08:30 · 112 mg/dL') continue;
+      final value = int.tryParse(readingPattern.firstMatch(entry)?.group(1) ?? '');
+      if (value != null) values.add(value);
+    }
+    if (values.isEmpty) {
+      return const ListTile(
+        title: Text('Tus registros de prueba'),
+        subtitle: Text('Guarda una lectura ficticia para ver el resumen.'),
+      );
+    }
+    final average = values.reduce((a, b) => a + b) / values.length;
+    return Card(
+      child: ListTile(
+        title: const Text('Tus registros de prueba'),
+        subtitle: Text(
+          'Lecturas manuales: ${values.length}\n'
+          'Media: ${average.toStringAsFixed(1)} mg/dL\n'
+          'Última lectura: ${values.first} mg/dL',
+        ),
+      ),
     );
   }
 }
