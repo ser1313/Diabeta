@@ -157,7 +157,6 @@ const _sections = [
   }),
   _DemoSection('Entrenamiento', Icons.fitness_center, {}),
   _DemoSection('Comidas y carbohidratos', Icons.restaurant, {
-    'Diario de comidas': 'Ejemplo guardado: yogur natural y manzana · 08:30.',
     'Estimar por foto': 'Resultado simulado: se detectan arroz, pollo y verduras. La porción se revisaría antes de guardar.',
     'Glucosa después de comer': 'Ejemplo ficticio: 108 mg/dL antes y 145 mg/dL dos horas después.',
   }),
@@ -193,6 +192,7 @@ class _DemoSectionPage extends StatelessWidget {
           children: [
             const Text('Demostración con datos ficticios'),
             const SizedBox(height: 12),
+            if (section.title == 'Comidas y carbohidratos') const _MealDiary(),
             for (final entry in section.entries.entries)
               Card(
                 child: ExpansionTile(
@@ -335,6 +335,109 @@ class _TrainingDemoState extends State<_TrainingDemo> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MealDiary extends StatefulWidget {
+  const _MealDiary();
+
+  @override
+  State<_MealDiary> createState() => _MealDiaryState();
+}
+
+class _MealDiaryState extends State<_MealDiary> {
+  static const _key = 'diabeta.demo.meals.v1';
+  final _storage = SharedPreferencesAsync();
+  final _name = TextEditingController();
+  final _carbs = TextEditingController();
+  List<String>? _entries;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final entries = await _storage.getStringList(_key) ?? const <String>[];
+      if (mounted) setState(() => _entries = entries);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo recuperar el diario.');
+    }
+  }
+
+  Future<void> _save() async {
+    final entries = _entries;
+    if (_saving || entries == null) return;
+    final name = _name.text.trim();
+    final grams = double.tryParse(_carbs.text.trim().replaceAll(',', '.'));
+    if (name.isEmpty || grams == null || !grams.isFinite || grams < 0) {
+      setState(() => _error = 'Indica la comida y los gramos de carbohidratos.');
+      return;
+    }
+    final now = DateTime.now();
+    final local = MaterialLocalizations.of(context);
+    final date = local.formatShortDate(now);
+    final time = local.formatTimeOfDay(TimeOfDay.fromDateTime(now));
+    final next = ['$date $time · $name · $grams g', ...entries];
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await _storage.setStringList(_key, next);
+      if (!mounted) return;
+      _name.clear();
+      _carbs.clear();
+      setState(() => _entries = next);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo guardar la comida.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _carbs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = _entries != null && !_saving;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Diario de comidas', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _name,
+          enabled: enabled,
+          maxLength: 100,
+          decoration: const InputDecoration(labelText: 'Comida ficticia'),
+        ),
+        TextField(
+          controller: _carbs,
+          enabled: enabled,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Carbohidratos (g)'),
+        ),
+        if (_error != null) Text(_error!),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: enabled ? _save : null,
+          child: const Text('Guardar comida'),
+        ),
+        for (final entry in _entries ?? const <String>[])
+          ListTile(title: Text(entry)),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }
