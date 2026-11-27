@@ -218,6 +218,7 @@ class _DemoSectionPage extends StatelessWidget {
             const SizedBox(height: 12),
             if (section.title == 'Tendencias e informes')
               _DemoGlucoseSummary(entries: glucoseEntries),
+            if (section.title == 'Plumas e insulina') const _PenDemo(),
             if (section.title == 'Comidas y carbohidratos') const _MealDiary(),
             for (final entry in section.entries.entries)
               Card(
@@ -522,4 +523,72 @@ class _DemoGlucoseSummary extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PenDemo extends StatefulWidget {
+  const _PenDemo();
+
+  @override
+  State<_PenDemo> createState() => _PenDemoState();
+}
+
+class _PenDemoState extends State<_PenDemo> {
+  static const _key = 'diabeta.demo.pen.v1';
+  final _storage = SharedPreferencesAsync();
+  List<String>? _entries;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final entries = await _storage.getStringList(_key) ?? const <String>[];
+      if (mounted) setState(() => _entries = entries);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo abrir el historial de plumas.');
+    }
+  }
+
+  Future<void> _import() async {
+    final entries = _entries;
+    if (_saving || entries == null) return;
+    final now = DateTime.now();
+    final local = MaterialLocalizations.of(context);
+    final date = local.formatShortDate(now);
+    final time = local.formatTimeOfDay(TimeOfDay.fromDateTime(now));
+    final next = ['$date $time · NovoPen Echo Plus · Insulina rápida (simulada)', ...entries];
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await _storage.setStringList(_key, next);
+      if (mounted) setState(() => _entries = next);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo guardar la importación.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      FilledButton(
+        onPressed: _entries == null || _saving ? null : _import,
+        child: const Text('Importar registro simulado de NovoPen'),
+      ),
+      if (_error != null) Text(_error!),
+      if (_entries?.isNotEmpty ?? false)
+        const ListTile(title: Text('Historial de importaciones simuladas')),
+      for (final entry in _entries ?? const <String>[])
+        ListTile(title: Text(entry)),
+    ],
+  );
 }
