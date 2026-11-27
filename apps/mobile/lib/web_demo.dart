@@ -224,6 +224,7 @@ class _TrainingDemo extends StatefulWidget {
 
 class _TrainingDemoState extends State<_TrainingDemo> {
   static const _key = 'diabeta.demo.training.v1';
+  static const _goalKey = 'diabeta.demo.training.goal.v1';
   static const _plans = {
     'Perder grasa': ['Lunes · Caminata', 'Miércoles · Fuerza general', 'Viernes · Bicicleta'],
     'Ganar volumen': ['Lunes · Tren superior', 'Miércoles · Tren inferior', 'Viernes · Cuerpo completo'],
@@ -247,13 +248,31 @@ class _TrainingDemoState extends State<_TrainingDemo> {
   Future<void> _load() async {
     try {
       final saved = await _storage.getStringList(_key) ?? const <String>[];
+      final goal = await _storage.getString(_goalKey);
       if (!mounted) return;
       setState(() {
         _done = saved.toSet();
+        if (goal != null && _plans.containsKey(goal)) _goal = goal;
         _ready = true;
       });
     } catch (_) {
       if (mounted) setState(() => _error = 'No se pudo recuperar el progreso.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _selectGoal(String? goal) async {
+    if (goal == null || !_ready || _busy || goal == _goal) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await _storage.setString(_goalKey, goal);
+      if (mounted) setState(() => _goal = goal);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo guardar el objetivo.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -300,9 +319,7 @@ class _TrainingDemoState extends State<_TrainingDemo> {
               for (final goal in _plans.keys)
                 DropdownMenuItem(value: goal, child: Text(goal)),
             ],
-            onChanged: _busy ? null : (goal) {
-              if (goal != null) setState(() => _goal = goal);
-            },
+            onChanged: _busy || !_ready ? null : _selectGoal,
           ),
           if (_ready) Text('$completed de ${sessions.length} sesiones completadas'),
           if (_error != null) Text(_error!),
