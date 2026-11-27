@@ -216,6 +216,8 @@ class _DemoSectionPage extends StatelessWidget {
           children: [
             const Text('Demostración con datos ficticios'),
             const SizedBox(height: 12),
+            if (section.title == 'AI Guardian')
+              _GuardianDemo(entries: glucoseEntries),
             if (section.title == 'Tendencias e informes')
               _DemoGlucoseSummary(entries: glucoseEntries),
             if (section.title == 'Plumas e insulina') const _PenDemo(),
@@ -589,6 +591,35 @@ class _PenDemoState extends State<_PenDemo> {
         const ListTile(title: Text('Historial de importaciones simuladas')),
       for (final entry in _entries ?? const <String>[])
         ListTile(title: Text(entry)),
+    ],
+  );
+}
+
+class _GuardianDemo extends StatefulWidget {
+  const _GuardianDemo({required this.entries});
+
+  final List<String> entries;
+
+  @override
+  State<_GuardianDemo> createState() => _GuardianDemoState();
+}
+
+class _GuardianDemoState extends State<_GuardianDemo> {
+  bool _showSummary = false;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const Text('Guardian de prueba · resumen local de lecturas ficticias'),
+      const SizedBox(height: 8),
+      if (_showSummary)
+        _DemoGlucoseSummary(entries: widget.entries)
+      else
+        FilledButton(
+          onPressed: () => setState(() => _showSummary = true),
+          child: const Text('Ver resumen de mis lecturas de prueba'),
+        ),
     ],
   );
 }
