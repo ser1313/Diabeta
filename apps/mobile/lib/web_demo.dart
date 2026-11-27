@@ -216,6 +216,7 @@ class _DemoSectionPage extends StatelessWidget {
           children: [
             const Text('Demostración con datos ficticios'),
             const SizedBox(height: 12),
+            if (section.title == 'Alertas y emergencias') const _AlertDemo(),
             if (section.title == 'AI Guardian')
               _GuardianDemo(entries: glucoseEntries),
             if (section.title == 'Tendencias e informes')
@@ -620,6 +621,47 @@ class _GuardianDemoState extends State<_GuardianDemo> {
           onPressed: () => setState(() => _showSummary = true),
           child: const Text('Ver resumen de mis lecturas de prueba'),
         ),
+    ],
+  );
+}
+
+class _AlertDemo extends StatelessWidget {
+  const _AlertDemo();
+
+  static const _examples = {
+    'Glucosa baja': 'Lectura baja ficticia. Simulación de un aviso en pantalla.',
+    'Glucosa alta': 'Lectura alta ficticia. Simulación de un aviso en pantalla.',
+    'Pérdida de señal': 'Sensor ficticio sin lecturas nuevas. Simulación de una interrupción.',
+  };
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Prueba de avisos en pantalla'),
+      Wrap(
+        spacing: 8,
+        children: [
+          for (final example in _examples.entries)
+            OutlinedButton(
+              child: Text(example.key),
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text('Prueba · ${example.key}'),
+                  content: Text(example.value),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Cerrar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+      const SizedBox(height: 12),
     ],
   );
 }
