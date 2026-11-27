@@ -181,7 +181,6 @@ const _sections = [
     'SOS': 'Vista previa del flujo. La demo no llama ni envía mensajes.',
   }),
   _DemoSection('Perfil y sincronización', Icons.manage_accounts_outlined, {
-    'Perfil': 'Ejemplos de perfiles: tipo 1, tipo 2, gestacional, prediabetes y deportista.',
     'Sincronización': 'Vista de ejemplo para revisar datos guardados y su estado de sincronización.',
   }),
 ];
@@ -220,6 +219,7 @@ class _DemoSectionPage extends StatelessWidget {
               const _AlertDemo(),
               const _EmergencyQrDemo(),
             ],
+            if (section.title == 'Perfil y sincronización') const _ProfileDemo(),
             if (section.title == 'AI Guardian')
               _GuardianDemo(entries: glucoseEntries),
             if (section.title == 'Tendencias e informes')
@@ -697,5 +697,80 @@ class _EmergencyQrDemo extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+class _ProfileDemo extends StatefulWidget {
+  const _ProfileDemo();
+
+  @override
+  State<_ProfileDemo> createState() => _ProfileDemoState();
+}
+
+class _ProfileDemoState extends State<_ProfileDemo> {
+  static const _key = 'diabeta.demo.profile.v1';
+  static const _profiles = ['Tipo 1', 'Tipo 2', 'Gestacional', 'Prediabetes', 'Deportista'];
+  final _storage = SharedPreferencesAsync();
+  String? _selected;
+  String? _error;
+  bool _ready = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final saved = await _storage.getString(_key);
+      if (!mounted) return;
+      setState(() {
+        _selected = _profiles.contains(saved) ? saved : null;
+        _ready = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo recuperar el perfil.');
+    }
+  }
+
+  Future<void> _select(String? value) async {
+    if (value == null || !_ready || _saving || value == _selected) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await _storage.setString(_key, value);
+      if (mounted) setState(() => _selected = value);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'No se pudo guardar el perfil.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      DropdownButton<String>(
+        isExpanded: true,
+        hint: const Text('Elige un perfil de prueba'),
+        value: _selected,
+        items: [
+          for (final profile in _profiles)
+            DropdownMenuItem(value: profile, child: Text(profile)),
+        ],
+        onChanged: _ready && !_saving ? _select : null,
+      ),
+      if (_saving)
+        const Text('Guardando perfil…')
+      else if (_selected != null && _error == null)
+        const Text('Perfil de prueba guardado en este navegador.'),
+      if (_error != null) Text(_error!),
+      const SizedBox(height: 12),
+    ],
   );
 }
