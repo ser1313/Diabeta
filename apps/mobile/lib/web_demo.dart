@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class WebDemo extends StatefulWidget {
@@ -177,7 +178,6 @@ const _sections = [
   }),
   _DemoSection('Alertas y emergencias', Icons.health_and_safety_outlined, {
     'Alertas de glucosa': 'Bandeja ficticia de avisos por glucosa baja, alta o pérdida de señal.',
-    'Ficha médica QR': 'Vista de ejemplo: persona de prueba, contacto de emergencia ficticio y tipo de diabetes.',
     'SOS': 'Vista previa del flujo. La demo no llama ni envía mensajes.',
   }),
   _DemoSection('Perfil y sincronización', Icons.manage_accounts_outlined, {
@@ -216,7 +216,10 @@ class _DemoSectionPage extends StatelessWidget {
           children: [
             const Text('Demostración con datos ficticios'),
             const SizedBox(height: 12),
-            if (section.title == 'Alertas y emergencias') const _AlertDemo(),
+            if (section.title == 'Alertas y emergencias') ...[
+              const _AlertDemo(),
+              const _EmergencyQrDemo(),
+            ],
             if (section.title == 'AI Guardian')
               _GuardianDemo(entries: glucoseEntries),
             if (section.title == 'Tendencias e informes')
@@ -663,5 +666,36 @@ class _AlertDemo extends StatelessWidget {
       ),
       const SizedBox(height: 12),
     ],
+  );
+}
+
+class _EmergencyQrDemo extends StatelessWidget {
+  const _EmergencyQrDemo();
+
+  static const _sample = 'DIABETA | FICHA FICTICIA\n'
+      'Nombre: Persona de prueba\n'
+      'Perfil: diabetes tipo 1 (ejemplo)\n'
+      'Contacto: Contacto de prueba (sin telefono)';
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: ExpansionTile(
+      title: const Text('Ficha médica QR de prueba'),
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Text('Ficha ficticia. Escanea el código con otro dispositivo para leerla.'),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: QrImageView(
+            data: _sample,
+            size: 180,
+            backgroundColor: Colors.white,
+            semanticsLabel: 'Código QR con una ficha ficticia de Diabeta',
+          ),
+        ),
+      ],
+    ),
   );
 }
