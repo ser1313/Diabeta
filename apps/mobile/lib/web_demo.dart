@@ -46,23 +46,29 @@ class _WebDemoState extends State<WebDemo> {
       setState(() => _error = 'Introduce un número entero positivo.');
       return;
     }
+    if (await _saveReading(reading) && mounted) _value.clear();
+  }
+
+  Future<bool> _saveReading(int reading, {String? sensor}) async {
+    if (!_ready || _saving) return false;
     final now = DateTime.now();
     final date = MaterialLocalizations.of(context).formatShortDate(now);
     final time = MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(now));
-    final entries = ['$date $time · $reading mg/dL', ..._entries];
+    final source = sensor == null ? '' : ' · $sensor (simulado)';
+    final entries = ['$date $time$source · $reading mg/dL', ..._entries];
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
       await _storage.setStringList(_key, entries);
-      if (!mounted) return;
-      _value.clear();
-      setState(() => _entries = entries);
+      if (mounted) setState(() => _entries = entries);
+      return true;
     } catch (_) {
       if (mounted) {
         setState(() => _error = 'No se pudo guardar el registro. Inténtalo de nuevo.');
       }
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -98,6 +104,7 @@ class _WebDemoState extends State<WebDemo> {
                           : _DemoSectionPage(
                               section: section,
                               glucoseEntries: _entries,
+                              importSensor: (sensor, value) => _saveReading(value, sensor: sensor),
                             ),
                     ),
                   ),
@@ -180,7 +187,20 @@ const _sections = [
 ];
 
 class _DemoSectionPage extends StatelessWidget {
-  const _DemoSectionPage({required this.section, required this.glucoseEntries});
+  const _DemoSectionPage({
+    required this.section,
+    required this.glucoseEntries,
+    required this.importSensor,
+  });
+
+  final Future<bool> Function(String, int) importSensor;
+
+  static const _sensorExamples = {
+    'FreeStyle Libre 2': 112,
+    'FreeStyle Libre 3': 126,
+    'Dexcom ONE+': 118,
+    'Dexcom G7': 115,
+  };
 
   final _DemoSection section;
   final List<String> glucoseEntries;
@@ -208,7 +228,29 @@ class _DemoSectionPage extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(entry.value),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(entry.value),
+                            if (section.title == 'Sensores de glucosa' &&
+                                _sensorExamples.containsKey(entry.key))
+                              TextButton(
+                                onPressed: () async {
+                                  final saved = await importSensor(
+                                    entry.key,
+                                    _sensorExamples[entry.key]!,
+                                  );
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(saved
+                                        ? 'Lectura simulada guardada en el historial.'
+                                        : 'No se pudo guardar la lectura.')),
+                                  );
+                                },
+                                child: const Text('Importar lectura simulada'),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -473,7 +515,7 @@ class _DemoGlucoseSummary extends StatelessWidget {
       child: ListTile(
         title: const Text('Tus registros de prueba'),
         subtitle: Text(
-          'Lecturas manuales: ${values.length}\n'
+          'Lecturas guardadas: ${values.length}\n'
           'Media: ${average.toStringAsFixed(1)} mg/dL\n'
           'Última lectura: ${values.first} mg/dL',
         ),
