@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 
+const registrationTermsVersion = '2026-11-28-v1';
+
 typedef AuthenticateCallback = Future<void> Function({
   required String email,
   required String password,
   required bool register,
   String? firstName,
+  String? acceptedTermsVersion,
 });
 
 class LoginScreen extends StatefulWidget {
@@ -146,6 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _password.text,
         register: _registerMode,
         firstName: _registerMode ? _firstName.text.trim() : null,
+        acceptedTermsVersion: _registerMode ? registrationTermsVersion : null,
       );
       if (mounted) widget.onLogin();
     } catch (error) {

@@ -14,6 +14,7 @@ void main() {
           required String password,
           required bool register,
           String? firstName,
+          String? acceptedTermsVersion,
         }) async {
           authenticateCalls++;
         },
@@ -39,12 +40,14 @@ void main() {
           required String password,
           required bool register,
           String? firstName,
+          String? acceptedTermsVersion,
         }) async {
           request
             ..['email'] = email
             ..['password'] = password
             ..['register'] = register
-            ..['firstName'] = firstName;
+            ..['firstName'] = firstName
+            ..['acceptedTermsVersion'] = acceptedTermsVersion;
         },
         onLogin: () => loginSuccesses++,
       ),
@@ -65,6 +68,7 @@ void main() {
     expect(request['password'], 'password-segura');
     expect(request['register'], isFalse);
     expect(request['firstName'], isNull);
+    expect(request['acceptedTermsVersion'], isNull);
     expect(loginSuccesses, 1);
   });
 
@@ -78,6 +82,7 @@ void main() {
           required String password,
           required bool register,
           String? firstName,
+          String? acceptedTermsVersion,
         }) async {
           authenticateCalls++;
         },
@@ -113,12 +118,14 @@ void main() {
           required String password,
           required bool register,
           String? firstName,
+          String? acceptedTermsVersion,
         }) async {
           request
             ..['email'] = email
             ..['password'] = password
             ..['register'] = register
-            ..['firstName'] = firstName;
+            ..['firstName'] = firstName
+            ..['acceptedTermsVersion'] = acceptedTermsVersion;
           throw const ApiException(429, 'rate limited');
         },
         onLogin: () {},
@@ -140,9 +147,22 @@ void main() {
       'password-segura',
     );
     await tester.tap(find.byKey(const Key('auth-submit')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(request, isEmpty);
+    await tester.tap(find.text('No aceptar'));
+    await tester.pumpAndSettle();
+    expect(request, isEmpty);
+
+    await tester.tap(find.byKey(const Key('auth-submit')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Aceptar y continuar'));
     await tester.pumpAndSettle();
 
     expect(request['register'], isTrue);
+    expect(request['acceptedTermsVersion'], registrationTermsVersion);
     expect(request['firstName'], 'Sergio');
     expect(
       find.text(

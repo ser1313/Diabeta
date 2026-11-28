@@ -12,6 +12,8 @@ model User {
   email String @unique
   passwordHash String
   firstName String?
+  acceptedTermsVersion String?
+  termsAcceptedAt DateTime?
   language String @default("es")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
