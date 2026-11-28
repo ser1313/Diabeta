@@ -81,6 +81,46 @@ class _WebDemoState extends State<WebDemo> {
     super.dispose();
   }
 
+  Future<void> _openSection(_DemoSection section) async {
+    if (section.requiresNotice) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Uso bajo su responsabilidad'),
+          content: const Text(
+            'Los datos mostrados son orientativos y no sustituyen el criterio de su endocrinólogo. '
+            'Usted es el único responsable de la dosis de insulina que decida administrarse. '
+            'Consulte siempre a su médico especialista ante cualquier duda.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || accepted != true) return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => section.title == 'Entrenamiento'
+            ? const _TrainingDemo()
+            : _DemoSectionPage(
+                section: section,
+                glucoseEntries: _entries,
+                importSensor: (sensor, value) => _saveReading(value, sensor: sensor),
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Diabeta · Demo')),
@@ -98,17 +138,7 @@ class _WebDemoState extends State<WebDemo> {
                   leading: Icon(section.icon),
                   title: Text(section.title),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(
-                      builder: (_) => section.title == 'Entrenamiento'
-                          ? const _TrainingDemo()
-                          : _DemoSectionPage(
-                              section: section,
-                              glucoseEntries: _entries,
-                              importSensor: (sensor, value) => _saveReading(value, sensor: sensor),
-                            ),
-                    ),
-                  ),
+                  onTap: () => _openSection(section),
                 ),
               ),
             const SizedBox(height: 20),
@@ -139,7 +169,9 @@ class _WebDemoState extends State<WebDemo> {
 }
 
 class _DemoSection {
-  const _DemoSection(this.title, this.icon, this.entries);
+  const _DemoSection(this.title, this.icon, this.entries, {this.requiresNotice = false});
+
+  final bool requiresNotice;
 
   final String title;
   final IconData icon;
@@ -159,18 +191,18 @@ const _sections = [
     'Otras marcas': 'Aquí se mostraría la compatibilidad por modelo. Puedes explorar el ejemplo de registro manual.',
     'Insulina rápida': 'Ejemplo de historial: comida · 14:15.',
     'Insulina basal': 'Ejemplo de historial: noche · 22:00.',
-  }),
+  }, requiresNotice: true),
   _DemoSection('Tendencias e informes', Icons.show_chart, {
     'Tiempo en rango': 'Informe ficticio de 14 días: 78 % en rango, 20 % por encima y 2 % por debajo.',
     'Perfil AGP': 'Ejemplo de lectura del informe: el tramo de mayor variación aparece por la tarde.',
     'GMI': 'En un informe del sensor se mostraría como un indicador calculado a partir de la glucosa media.',
     'HbA1c de laboratorio': 'Ejemplo de seguimiento: 7,4 % en junio y 7,1 % en septiembre.',
   }),
-  _DemoSection('Entrenamiento', Icons.fitness_center, {}),
+  _DemoSection('Entrenamiento', Icons.fitness_center, {}, requiresNotice: true),
   _DemoSection('Comidas y carbohidratos', Icons.restaurant, {
     'Estimar por foto': 'Resultado simulado: se detectan arroz, pollo y verduras. La porción se revisaría antes de guardar.',
     'Glucosa después de comer': 'Ejemplo ficticio: 108 mg/dL antes y 145 mg/dL dos horas después.',
-  }),
+  }, requiresNotice: true),
   _DemoSection('AI Guardian', Icons.shield_outlined, {
     'Patrón de glucosa': 'Análisis simulado: en tres días del ejemplo la glucosa subió después de la merienda.',
     'Pregunta de ejemplo': '«¿Qué cambió esta semana?» En el ejemplo, la mediana de la tarde bajó respecto a la semana anterior.',
