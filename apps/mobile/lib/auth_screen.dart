@@ -102,13 +102,15 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Términos de uso de Diabeta'),
+        title: const Text('Exención de responsabilidad'),
         scrollable: true,
         content: const Text(
-          'La gestión de la diabetes conlleva riesgos médicos. '
-          'Diabeta ofrece información orientativa y no supervisa ni valida tus decisiones de tratamiento. '
-          'Sigue la pauta acordada con tu equipo sanitario y consulta con tu especialista antes de cambiarla. '
-          'Esta cláusula no limita tus derechos ni las responsabilidades que correspondan conforme a la ley.',
+          'El usuario reconoce y acepta que la gestión de la diabetes conlleva riesgos médicos inherentes. '
+          'Diabeta no supervisa ni valida las decisiones de tratamiento del usuario. '
+          'El usuario toma sus decisiones bajo su propia responsabilidad, incluida la dosis de insulina que decida administrarse.\n\n'
+          'El titular de Diabeta no responde por daños o complicaciones médicas, como hipoglucemias o hiperglucemias, '
+          'en la medida en que deriven exclusivamente de decisiones del usuario, del uso indebido de la aplicación '
+          'o de la omisión de consulta con un médico especialista. Esta cláusula se aplica dentro de los límites de la ley.',
         ),
         actions: [
           TextButton(
@@ -117,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Aceptar'),
+            child: const Text('Aceptar y continuar'),
           ),
         ],
       ),
