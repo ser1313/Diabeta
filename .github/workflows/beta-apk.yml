@@ -23,6 +23,9 @@ on:
 jobs:
   verify-release:
     runs-on: ubuntu-24.04
+    env:
+      ANDROID_USER_HOME: ${{ runner.temp }}/diabeta-android
+      ANDROID_AVD_HOME: ${{ runner.temp }}/diabeta-android/avd
     defaults:
       run:
         working-directory: apps/mobile
@@ -37,12 +40,6 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: '3.47.9'
-      - run: flutter pub get --enforce-lockfile
-      # Dominio reservado (RFC 2606), no funcional: solo comprueba que la
-      # compilación release funciona. Sin secretos. Calculadora no habilitada.
-      - run: flutter build apk --release --dart-define=API_URL=https://example.invalid --dart-define=DIABETA_BETA=true
-      - name: Comprobaciones de seguridad del APK
-        run: ../../scripts/check-release-apk.sh build/app/outputs/flutter-apk/app-release.apk
       - name: Instalar imagen Android 35 para la prueba de arranque
         if: github.event_name == 'pull_request'
         run: |
@@ -51,9 +48,18 @@ jobs:
           sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
           test -x "$sdkmanager" || { echo "::error::No se encontró sdkmanager."; exit 1; }
           "$sdkmanager" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+          mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$(dirname "$sdkmanager")/avdmanager" create avd --name diabeta-smoke \
+            --path "$ANDROID_AVD_HOME/diabeta-smoke.avd" \
             --package "system-images;android-35;google_apis;x86_64"
-      - name: Probar el inicio de sesión en el emulador sin API
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx diabeta-smoke
+      - run: flutter pub get --enforce-lockfile
+      # Dominio reservado (RFC 2606), no funcional: solo comprueba que la
+      # compilación release funciona. Sin secretos. Calculadora no habilitada.
+      - run: flutter build apk --release --dart-define=API_URL=https://example.invalid --dart-define=DIABETA_BETA=true
+      - name: Comprobaciones de seguridad del APK
+        run: ../../scripts/check-release-apk.sh build/app/outputs/flutter-apk/app-release.apk
+      - name: Comprobar la pantalla de acceso en el emulador sin API
         if: github.event_name == 'pull_request'
         timeout-minutes: 8
         run: bash ../../scripts/smoke-android-startup.sh build/app/outputs/flutter-apk/app-release.apk
