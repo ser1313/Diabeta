@@ -58,6 +58,7 @@ jobs:
         if: hashFiles('apps/mobile/test/**') != ''
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ github.event_name != 'pull_request' || github.head_ref != 'codex/android-startup-smoke' }}
         with:
           name: diabeta-debug-apk-${{ github.event.pull_request.number || github.run_number }}
           path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
