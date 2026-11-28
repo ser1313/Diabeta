@@ -43,6 +43,18 @@ jobs:
       - run: flutter build apk --release --dart-define=API_URL=https://example.invalid --dart-define=DIABETA_BETA=true
       - name: Comprobaciones de seguridad del APK
         run: ../../scripts/check-release-apk.sh build/app/outputs/flutter-apk/app-release.apk
+      - name: Instalar imagen Android 35 para la prueba de arranque
+        if: github.event_name == 'pull_request'
+        run: |
+          test -c /dev/kvm || { echo "::error::Este runner no ofrece KVM."; exit 1; }
+          sudo chown "$(id -u):$(id -g)" /dev/kvm
+          sdkmanager "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+          echo no | avdmanager create avd --name diabeta-smoke \
+            --package "system-images;android-35;google_apis;x86_64"
+      - name: Probar el inicio de sesión en el emulador sin API
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 8
+        run: bash ../../scripts/smoke-android-startup.sh build/app/outputs/flutter-apk/app-release.apk
 
   beta-apk:
     # Solo ejecución manual desde main; nunca en pull_request.
