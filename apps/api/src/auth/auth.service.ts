@@ -2,13 +2,17 @@ import { BadRequestException, ConflictException, Injectable, UnauthorizedExcepti
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma.service';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { LoginDto, RegisterDto, REGISTRATION_TERMS_VERSION } from './auth.dto';
 
 @Injectable()
 export class AuthService {
   constructor(private p: PrismaService, private jwt: JwtService) {}
 
   async register(d: RegisterDto) {
+    if (d.acceptedTermsVersion !== REGISTRATION_TERMS_VERSION) {
+      throw new BadRequestException('The current registration terms must be accepted');
+    }
+    const termsAcceptedAt = new Date();
     const email = d.email.trim().toLowerCase();
     const firstName = d.firstName.trim();
     if (!firstName) throw new BadRequestException('First name cannot be empty');
@@ -16,7 +20,13 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
     const u = await this.p.user.create({
-      data: { email, passwordHash: await argon2.hash(d.password), firstName },
+      data: {
+        email,
+        passwordHash: await argon2.hash(d.password),
+        firstName,
+        acceptedTermsVersion: REGISTRATION_TERMS_VERSION,
+        termsAcceptedAt,
+      },
     });
     return this.issue(u.id, u.email);
   }

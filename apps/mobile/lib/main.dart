@@ -65,14 +65,16 @@ class _AuthGateState extends State<AuthGate> {
     required String password,
     required bool register,
     String? firstName,
+    String? acceptedTermsVersion,
   }) async {
     final payload = <String, dynamic>{
       'email': email.trim().toLowerCase(),
       'password': password,
     };
-    // El DTO de login rechaza cualquier campo adicional: firstName solo se
-    // incluye en el endpoint de registro.
-    if (register) payload['firstName'] = firstName?.trim() ?? '';
+    if (register) {
+      payload['firstName'] = firstName?.trim() ?? '';
+      payload['acceptedTermsVersion'] = acceptedTermsVersion;
+    }
 
     final result = await ApiClient().post(
       register ? '/auth/register' : '/auth/login',

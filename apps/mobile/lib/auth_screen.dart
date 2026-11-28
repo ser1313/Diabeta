@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 
 import 'api_client.dart';
 
+const registrationTermsVersion = '2026-11-28-v1';
+
 typedef AuthenticateCallback = Future<void> Function({
   required String email,
   required String password,
   required bool register,
   String? firstName,
+  String? acceptedTermsVersion,
 });
 
 class LoginScreen extends StatefulWidget {
@@ -97,6 +100,35 @@ class _LoginScreenState extends State<LoginScreen> {
     return 'No se ha podido conectar con Diabeta. Comprueba tu conexión e inténtalo otra vez.';
   }
 
+  Future<bool> _acceptRegistrationTerms() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Exención de responsabilidad'),
+        scrollable: true,
+        content: const Text(
+          'El usuario reconoce y acepta que la gestión de la diabetes conlleva riesgos médicos inherentes. '
+          'Diabeta no supervisa ni valida las decisiones de tratamiento del usuario. '
+          'El usuario toma sus decisiones bajo su propia responsabilidad, incluida la dosis de insulina que decida administrarse.\n\n'
+          'El titular de Diabeta no responde por daños o complicaciones médicas, como hipoglucemias o hiperglucemias, '
+          'en la medida en que deriven exclusivamente de decisiones del usuario, del uso indebido de la aplicación '
+          'o de la omisión de consulta con un médico especialista. Esta cláusula se aplica dentro de los límites de la ley.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('No aceptar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Aceptar y continuar'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     FocusScope.of(context).unfocus();
@@ -108,11 +140,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      if (_registerMode) {
+        final accepted = await _acceptRegistrationTerms();
+        if (!mounted || !accepted) return;
+      }
       await widget.onAuthenticate(
         email: _email.text.trim().toLowerCase(),
         password: _password.text,
         register: _registerMode,
         firstName: _registerMode ? _firstName.text.trim() : null,
+        acceptedTermsVersion: _registerMode ? registrationTermsVersion : null,
       );
       if (mounted) widget.onLogin();
     } catch (error) {
