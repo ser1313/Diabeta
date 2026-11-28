@@ -111,6 +111,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String status = 'Cargando...';
 
   int pendingGlucose = 0;
+  List<PendingGlucoseReading> rejectedGlucose = [];
   int _refreshGeneration = 0;
   bool _signingOut = false;
 
@@ -155,12 +156,21 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       final account = _accountFromToken(token);
       if (token == null || account == null || !mounted || _signingOut) return;
       final queue = OfflineGlucoseQueue.forAccount(account);
-      remaining = (await queue.pending()).length;
-      if (mounted && !_signingOut && generation == _refreshGeneration) {
-        setState(() => pendingGlucose = remaining);
+      Future<void> refreshQueueStatus() async {
+        final readings = await queue.pending();
+        final rejected = readings.where((entry) => entry.rejectionStatus != null).toList();
+        remaining = readings.length - rejected.length;
+        if (mounted && !_signingOut && generation == _refreshGeneration) {
+          setState(() {
+            pendingGlucose = remaining;
+            rejectedGlucose = rejected;
+          });
+        }
       }
+
+      await refreshQueueStatus();
       if (remaining > 0) {
-        final sync = await queue.drain(
+        await queue.drain(
           (reading) async {
             if (!mounted || _signingOut || await api.token() != token) {
               throw StateError('La sesión ha cambiado.');
@@ -168,6 +178,10 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             if (!mounted || _signingOut) throw StateError('La sesión ha cambiado.');
             await api.post('/glucose', reading.toPayload(), sessionToken: token);
           },
+          rejectionStatus: (error) => error is ApiException &&
+              (error.statusCode == 400 || error.statusCode == 409)
+                  ? error.statusCode
+                  : null,
           shouldContinue: () => mounted && !_signingOut && generation == _refreshGeneration,
           shouldPause: (error) =>
               error is TimeoutException ||
@@ -179,7 +193,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                       error.statusCode == 429 ||
                       error.statusCode >= 500)),
         );
-        remaining = sync.remaining;
+        await refreshQueueStatus();
       }
       if (!mounted || _signingOut || await api.token() != token) return;
       final data = await Future.wait([
@@ -437,6 +451,14 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             Text(status),
             if (pendingGlucose > 0)
               Text('Lecturas de glucosa pendientes de sincronizar: $pendingGlucose'),
+            for (final reading in rejectedGlucose)
+              ListTile(
+                title: Text('Lectura rechazada: ${reading.value} mg/dL'),
+                subtitle: Text(
+                  'Guardada en este dispositivo sin sincronizar '
+                  '(${reading.recordedAt.toLocal()}).',
+                ),
+              ),
             const SizedBox(height: 12),
             Text('Últimos registros', style: Theme.of(c).textTheme.titleMedium),
             if (recent.isEmpty)

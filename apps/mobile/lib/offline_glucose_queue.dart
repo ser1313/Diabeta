@@ -9,18 +9,21 @@ class PendingGlucoseReading {
   final String clientRequestId;
   final double value;
   final DateTime recordedAt;
+  final int? rejectionStatus;
 
   const PendingGlucoseReading._(
     this.clientRequestId,
     this.value,
-    this.recordedAt,
-  );
+    this.recordedAt, [
+    this.rejectionStatus,
+  ]);
 
   factory PendingGlucoseReading._fromPayload(Map<String, dynamic> payload) {
     return PendingGlucoseReading._(
       payload['clientRequestId'] as String,
       (payload['value'] as num).toDouble(),
       DateTime.parse(payload['recordedAt'] as String),
+      payload['rejectionStatus'] as int?,
     );
   }
 
@@ -87,9 +90,11 @@ class OfflineGlucoseQueue {
     Future<void> Function(PendingGlucoseReading) send, {
     bool Function()? shouldContinue,
     bool Function(Object error)? shouldPause,
+    int? Function(Object error)? rejectionStatus,
   }) => _serialize(_drains, () async {
     var synced = 0;
     for (final reading in await pending()) {
+      if (reading.rejectionStatus != null) continue;
       final stillPending = (await pending()).any(
         (entry) => entry.clientRequestId == reading.clientRequestId,
       );
@@ -98,6 +103,20 @@ class OfflineGlucoseQueue {
       try {
         await send(reading);
       } catch (error) {
+        final status = rejectionStatus?.call(error);
+        if (status != null) {
+          await _serialize(_storageOperations, () async {
+            final readings = await _read();
+            if (!readings.any((entry) => entry.clientRequestId == reading.clientRequestId)) return;
+            await _write([
+              for (final entry in readings)
+                if (entry.clientRequestId == reading.clientRequestId)
+                  PendingGlucoseReading._(entry.clientRequestId, entry.value, entry.recordedAt, status)
+                else
+                  entry,
+            ]);
+          });
+        }
         if (shouldPause?.call(error) == true) break;
         continue;
       }
@@ -136,7 +155,14 @@ class OfflineGlucoseQueue {
     return _storage.write(
       key: _key,
       value: jsonEncode(
-        readings.map((reading) => reading.toPayload()).toList(),
+        [
+          for (final reading in readings)
+            {
+              ...reading.toPayload(),
+              if (reading.rejectionStatus != null)
+                'rejectionStatus': reading.rejectionStatus,
+            },
+        ],
       ),
     );
   }

@@ -62,6 +62,34 @@ void main() {
     },
   );
 
+  test('persists rejected readings and retries only transient failures', () async {
+    final queue = OfflineGlucoseQueue.forAccount('account');
+    final bad = await queue.enqueue(120, recordedAt);
+    final conflicting = await queue.enqueue(121, recordedAt);
+    final retry = await queue.enqueue(122, recordedAt);
+
+    await queue.drain(
+      (entry) async {
+        if (entry.clientRequestId == bad.clientRequestId) throw 400;
+        if (entry.clientRequestId == conflicting.clientRequestId) throw 409;
+        throw 503;
+      },
+      rejectionStatus: (error) => error == 400 || error == 409 ? error as int : null,
+    );
+
+    final restarted = OfflineGlucoseQueue.forAccount('account');
+    final stored = await restarted.pending();
+    expect(stored.map((entry) => entry.rejectionStatus), [400, 409, null]);
+    expect(stored.first.toPayload(), bad.toPayload());
+
+    final sent = <String>[];
+    final result = await restarted.drain((entry) async {
+      sent.add(entry.clientRequestId);
+    });
+    expect(sent, [retry.clientRequestId]);
+    expect(result.remaining, 2);
+  });
+
   test(
     'allows enqueue during upload and serializes drains across instances',
     () async {
