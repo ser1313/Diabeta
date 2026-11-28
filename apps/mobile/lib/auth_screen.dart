@@ -97,6 +97,33 @@ class _LoginScreenState extends State<LoginScreen> {
     return 'No se ha podido conectar con Diabeta. Comprueba tu conexión e inténtalo otra vez.';
   }
 
+  Future<bool> _acceptRegistrationTerms() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Términos de uso de Diabeta'),
+        scrollable: true,
+        content: const Text(
+          'La gestión de la diabetes conlleva riesgos médicos. '
+          'Diabeta ofrece información orientativa y no supervisa ni valida tus decisiones de tratamiento. '
+          'Sigue la pauta acordada con tu equipo sanitario y consulta con tu especialista antes de cambiarla. '
+          'Esta cláusula no limita tus derechos ni las responsabilidades que correspondan conforme a la ley.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('No aceptar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     FocusScope.of(context).unfocus();
@@ -108,6 +135,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      if (_registerMode) {
+        final accepted = await _acceptRegistrationTerms();
+        if (!mounted || !accepted) return;
+      }
       await widget.onAuthenticate(
         email: _email.text.trim().toLowerCase(),
         password: _password.text,
