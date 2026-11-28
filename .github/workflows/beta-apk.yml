@@ -48,8 +48,10 @@ jobs:
         run: |
           test -c /dev/kvm || { echo "::error::Este runner no ofrece KVM."; exit 1; }
           sudo chown "$(id -u):$(id -g)" /dev/kvm
-          sdkmanager "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
-          echo no | avdmanager create avd --name diabeta-smoke \
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$sdkmanager" || { echo "::error::No se encontró sdkmanager."; exit 1; }
+          "$sdkmanager" "platform-tools" "emulator" "system-images;android-35;google_apis;x86_64"
+          echo no | "$(dirname "$sdkmanager")/avdmanager" create avd --name diabeta-smoke \
             --package "system-images;android-35;google_apis;x86_64"
       - name: Probar el inicio de sesión en el emulador sin API
         if: github.event_name == 'pull_request'

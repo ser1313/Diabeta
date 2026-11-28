@@ -4,6 +4,7 @@ set -euo pipefail
 apk=${1:?Uso: smoke-android-startup.sh APK}
 package=com.example.diabeta
 export ANDROID_SERIAL=emulator-5554
+export PATH="${ANDROID_HOME:?Falta ANDROID_HOME}/platform-tools:$PATH"
 emulator_log=$(mktemp)
 ui_xml=/sdcard/diabeta-smoke.xml
 
